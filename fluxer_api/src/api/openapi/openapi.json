@@ -6236,7 +6236,7 @@
 						"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}
 					}
 				},
-				"description": "Only claimed, email-verified non-bot users can create guilds.",
+				"description": "Only claimed, email-verified non-bot users can create guilds. A self-hosted instance can restrict creation to admins and users granted the feature_guild_create limit.",
 				"security": [{"sessionToken": []}],
 				"requestBody": {
 					"required": true,
@@ -30259,9 +30259,18 @@
 					"direct_messages_disabled": {
 						"type": "boolean",
 						"description": "Whether direct messages and friend requests are disabled instance-wide"
+					},
+					"guild_create_access": {
+						"type": "boolean",
+						"description": "Whether every account can create communities. When false, only admins and accounts granted the feature_guild_create limit can"
 					}
 				},
-				"required": ["single_community", "single_community_guild_id", "direct_messages_disabled"],
+				"required": [
+					"single_community",
+					"single_community_guild_id",
+					"direct_messages_disabled",
+					"guild_create_access"
+				],
 				"additionalProperties": false,
 				"description": "Community topology and direct-message policy for this instance"
 			},

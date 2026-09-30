@@ -10659,6 +10659,7 @@
 							"feature_custom_notification_sounds",
 							"feature_early_access",
 							"feature_global_expressions",
+							"feature_guild_create",
 							"feature_higher_video_quality",
 							"feature_per_guild_profiles",
 							"feature_voice_entrance_sounds",
@@ -10966,6 +10967,7 @@
 							"single_community_guild_id": {"nullable": true, "type": "string"},
 							"direct_messages_disabled": {"type": "boolean"},
 							"direct_messages_locked": {"type": "boolean"},
+							"guild_create_access": {"type": "boolean"},
 							"premium_mode": {"type": "string", "enum": ["mirror", "everyone"]},
 							"services": {
 								"type": "object",
@@ -11003,6 +11005,7 @@
 							"single_community_guild_id",
 							"direct_messages_disabled",
 							"direct_messages_locked",
+							"guild_create_access",
 							"premium_mode",
 							"services",
 							"services_resolved",
@@ -11523,6 +11526,7 @@
 							"direct_messages_disabled": {"type": "boolean"},
 							"direct_messages_locked": {"type": "boolean", "enum": [false]},
 							"premium_mode": {"type": "string", "enum": ["mirror", "everyone"]},
+							"guild_create_access": {"type": "boolean"},
 							"services": {
 								"nullable": true,
 								"type": "object",
