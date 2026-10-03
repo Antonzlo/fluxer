@@ -3,6 +3,7 @@
 import {BUILD_CHANNEL} from '@electron/common/BuildChannel';
 import {onLocaleChange, t} from '@electron/main/MainI18n';
 import {openExternalDeduped} from '@electron/main/OpenExternal';
+import {openServerUrlDialog} from '@electron/main/ServerUrlDialog';
 import {buildTroubleshootingMenuItems} from '@electron/main/Troubleshooting';
 import {getMainWindow, toggleWindowDevTools} from '@electron/main/Window';
 import {type BaseWindow, BrowserWindow, Menu, type MenuItem, type MenuItemConstructorOptions} from 'electron';
@@ -219,6 +220,10 @@ function buildTemplate(): Array<MenuItemConstructorOptions> {
 				},
 			},
 			{type: 'separator'},
+			{
+				label: 'Set Server URL…',
+				click: () => openServerUrlDialog(),
+			},
 			{
 				label: t('desktop.appMenu.troubleshooting'),
 				submenu: buildTroubleshootingMenuItems(),

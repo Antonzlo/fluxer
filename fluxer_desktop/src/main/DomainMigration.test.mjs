@@ -181,3 +181,36 @@ describe('DomainMigration set app origin IPC', () => {
 		assert.equal(fs.existsSync(settingsPath), false);
 	});
 });
+
+describe('DesktopConfig custom app url', () => {
+	test('uses a persisted app_url and treats it as the custom URL', () => {
+		const {desktopConfig} = loadDesktop({settings: {app_url: 'chat.example.org'}});
+		assert.equal(desktopConfig.getAppUrl(), 'https://chat.example.org/');
+		assert.equal(desktopConfig.getCustomAppUrl(), 'https://chat.example.org/');
+	});
+
+	test('ignores invalid or non-http app_url values', () => {
+		for (const value of ['ftp://example.org', 'javascript:alert(1)', '', 42]) {
+			const {desktopConfig} = loadDesktop({settings: {app_url: value}});
+			assert.equal(desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+			assert.equal(desktopConfig.getCustomAppUrl(), null);
+		}
+	});
+
+	test('setCustomAppUrl persists, validates and clears', () => {
+		const {desktopConfig, readSettings} = loadDesktop();
+		assert.equal(desktopConfig.setCustomAppUrl('http://localhost:8088'), true);
+		assert.equal(readSettings().app_url, 'http://localhost:8088/');
+		assert.equal(desktopConfig.setCustomAppUrl('file:///etc/passwd'), false);
+		assert.equal(desktopConfig.getAppUrl(), 'http://localhost:8088/');
+		assert.equal(desktopConfig.setCustomAppUrl(null), true);
+		assert.equal('app_url' in readSettings(), false);
+		assert.equal(desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+	});
+
+	test('runtime override beats the persisted app_url', () => {
+		const {desktopConfig} = loadDesktop({settings: {app_url: 'https://saved.example.org'}});
+		desktopConfig.setRuntimeAppUrlOverride('https://cli.example.org/');
+		assert.equal(desktopConfig.getAppUrl(), 'https://cli.example.org/');
+	});
+});

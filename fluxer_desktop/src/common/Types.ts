@@ -644,6 +644,7 @@ export interface DomainMigrationApi {
 export interface ElectronAPI {
 	platform: NodeJS.Platform;
 	buildChannel: 'stable' | 'canary';
+	openServerUrlDialog: () => Promise<void>;
 	getDesktopInfo: () => Promise<DesktopInfo>;
 	getGpuInfo: () => Promise<GpuInfo>;
 	getDesktopWindowBehaviorSettings: () => Promise<DesktopWindowBehaviorSettings>;

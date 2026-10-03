@@ -25,6 +25,7 @@ interface DesktopConfig extends Record<string, unknown> {
 	troubleshooting?: PersistedDesktopTroubleshootingSettings;
 	theme_allowed_local_files?: Array<string>;
 	app_origin?: string;
+	app_url?: string;
 }
 
 export type ChromiumSwitchesSetting = ReadonlyArray<string> | Record<string, unknown>;
@@ -157,6 +158,19 @@ export function getOfficialAppOrigins(): Array<string> {
 	return [new URL(getLegacyAppUrl()).origin, getMigratedAppOrigin()];
 }
 
+export function normalizeCustomAppUrl(value: unknown): string | null {
+	if (typeof value !== 'string') return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const candidate = /^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
+	try {
+		const url = new URL(candidate);
+		return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+	} catch {
+		return null;
+	}
+}
+
 function sanitizeAppOrigin(value: unknown): string | undefined {
 	return typeof value === 'string' && getOfficialAppOrigins().includes(value) ? value : undefined;
 }
@@ -166,7 +180,12 @@ function sanitizeDesktopConfig(value: unknown): DesktopConfig {
 		return {};
 	}
 	const nextConfig: DesktopConfig = {...value};
-	delete nextConfig.app_url;
+	const customAppUrl = normalizeCustomAppUrl(value.app_url);
+	if (customAppUrl) {
+		nextConfig.app_url = customAppUrl;
+	} else {
+		delete nextConfig.app_url;
+	}
 	const appOrigin = sanitizeAppOrigin(value.app_origin);
 	if (appOrigin) {
 		nextConfig.app_origin = appOrigin;
@@ -348,8 +367,9 @@ export function loadDesktopConfig(userDataPath: string): void {
 }
 
 export function getAppUrl(): string {
-	if (runtimeAppUrlOverride) {
-		return runtimeAppUrlOverride;
+	const customAppUrl = getCustomAppUrl();
+	if (customAppUrl) {
+		return customAppUrl;
 	}
 	const migratedAppOrigin = getMigratedAppOrigin();
 	if (config.app_origin === migratedAppOrigin) {
@@ -377,7 +397,22 @@ export function setAppOrigin(origin: string): boolean {
 }
 
 export function getCustomAppUrl(): string | null {
-	return runtimeAppUrlOverride;
+	return runtimeAppUrlOverride ?? normalizeCustomAppUrl(process.env.FLUXER_APP_URL) ?? config.app_url ?? null;
+}
+
+export function setCustomAppUrl(appUrl: string | null): boolean {
+	if (appUrl === null || appUrl.trim() === '') {
+		delete config.app_url;
+		saveDesktopConfig();
+		return true;
+	}
+	const normalized = normalizeCustomAppUrl(appUrl);
+	if (!normalized) {
+		return false;
+	}
+	config.app_url = normalized;
+	saveDesktopConfig();
+	return true;
 }
 
 export function setRuntimeAppUrlOverride(appUrl: string | null): void {

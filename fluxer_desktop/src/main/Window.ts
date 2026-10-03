@@ -34,6 +34,7 @@ import {t} from '@electron/main/MainI18n';
 import {openExternalDeduped} from '@electron/main/OpenExternal';
 import {registerSpellcheck} from '@electron/main/Spellcheck';
 import {resetStreamingPriority} from '@electron/main/StreamingPriority';
+import {attachServerUrlLink} from '@electron/main/ServerUrlLink';
 import {getMainWindowRendererGoneAction} from '@electron/main/WindowRendererLifecycle';
 import {refreshWindowsBadgeOverlay} from '@electron/main/WindowsBadge';
 import {app, BrowserWindow, dialog, screen} from 'electron';
@@ -1003,6 +1004,7 @@ export function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 				});
 		},
 	});
+	attachServerUrlLink(webContents);
 	webContents.on('did-finish-load', () => {
 		rendererGoneReloaded = false;
 		mainWindowRendererGone = false;

@@ -21,6 +21,7 @@ import {
 	updateTrayRuntimeState,
 } from '@electron/main/DesktopTray';
 import {registerDomainMigrationHandlers} from '@electron/main/DomainMigration';
+import {registerServerUrlHandlers} from '@electron/main/ServerUrlDialog';
 import {DownloadChecksumError, downloadFile} from '@electron/main/FileDownloads';
 import {
 	type LinuxAppearanceSnapshot,
@@ -141,6 +142,7 @@ export function registerIpcHandlers(): void {
 	registerVoiceDebugEventSinkPopoutIpcHandlers();
 	registerVoiceBackgroundMediaCacheHandlers();
 	registerDomainMigrationHandlers();
+	registerServerUrlHandlers();
 	ipcMain.handle('get-desktop-info', () => getDesktopInfo());
 	ipcMain.handle('get-gpu-info', () => getGpuInfo());
 	ipcMain.handle('get-app-metrics', () => getAppMetricsSnapshot());
