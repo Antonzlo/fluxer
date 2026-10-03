@@ -233,6 +233,7 @@ export const StreamWatchHoverPopout = observer(function StreamWatchHoverPopout({
 	const handleReferenceClick = useCallback(
 		(event: MouseEvent<HTMLElement>) => {
 			onChildClick?.(event);
+			if (event.isDefaultPrevented()) return;
 			onRestClick?.(event);
 		},
 		[onChildClick, onRestClick],

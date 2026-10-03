@@ -7,6 +7,8 @@ import {VoiceTrackSource} from '@app/features/voice/engine/VoiceTrackSource';
 import {usePendingVoiceConnection} from '@app/features/voice/hooks/usePendingVoiceConnection';
 import {useCallback, useMemo, useRef} from 'react';
 
+const DOUBLE_CLICK_WINDOW_MS = 500;
+
 interface UseStreamWatchDoubleClickOptions {
 	streamParticipantIdentity: string | null;
 	guildId: string | null;
@@ -46,7 +48,7 @@ export function useStreamWatchDoubleClick({
 			const now = Date.now();
 			const timeSinceLastClick = now - lastClickTimeRef.current;
 			lastClickTimeRef.current = now;
-			if (timeSinceLastClick < 300 && streamParticipantIdentity) {
+			if (timeSinceLastClick < DOUBLE_CLICK_WINDOW_MS && streamParticipantIdentity) {
 				event.preventDefault();
 				event.stopPropagation();
 				PopoutCommands.closeAll();

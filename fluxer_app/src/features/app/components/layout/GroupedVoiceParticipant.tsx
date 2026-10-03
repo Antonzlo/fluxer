@@ -224,6 +224,7 @@ export const GroupedVoiceParticipant = observer(function GroupedVoiceParticipant
 				guildId={guildId}
 				position="right-start"
 				disableContextMenu={true}
+				disableBackdrop={showStreamHover}
 				data-flx="app.grouped-voice-participant.preloadable-user-popout"
 			>
 				<StreamWatchHoverPopout

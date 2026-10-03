@@ -311,6 +311,7 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 					channelId={currentChannelId ?? undefined}
 					position="right-start"
 					disableContextMenu={true}
+					disableBackdrop={showStreamHover}
 					onPopoutOpen={handleProfilePopoutOpen}
 					onPopoutClose={handleProfilePopoutClose}
 					data-flx="app.voice-participant-item.preloadable-user-popout"
