@@ -88,7 +88,7 @@ function topLevelFrame(url) {
 
 describe('DesktopConfig app origin', () => {
 	test('keeps loading the legacy root when no app origin is stored', () => {
-		assert.equal(loadDesktop().desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+		assert.equal(loadDesktop().desktopConfig.getAppUrl(), 'https://fluxer.pitzuna.com');
 		assert.equal(loadDesktop({channel: 'canary'}).desktopConfig.getAppUrl(), 'https://web.canary.fluxer.app');
 	});
 
@@ -101,9 +101,9 @@ describe('DesktopConfig app origin', () => {
 	});
 
 	test('loads the legacy root for a stored legacy origin', () => {
-		const {desktopConfig} = loadDesktop({settings: {app_origin: 'https://web.fluxer.app'}});
+		const {desktopConfig} = loadDesktop({settings: {app_origin: 'https://fluxer.pitzuna.com'}});
 
-		assert.equal(desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+		assert.equal(desktopConfig.getAppUrl(), 'https://fluxer.pitzuna.com');
 	});
 
 	test('drops stored origins outside the channel allowlist', () => {
@@ -115,7 +115,7 @@ describe('DesktopConfig app origin', () => {
 			42,
 		]) {
 			const {desktopConfig} = loadDesktop({settings: {app_origin: appOrigin}});
-			assert.equal(desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+			assert.equal(desktopConfig.getAppUrl(), 'https://fluxer.pitzuna.com');
 		}
 	});
 
@@ -123,10 +123,10 @@ describe('DesktopConfig app origin', () => {
 		const stable = loadDesktop({settings: {app_origin: 'https://fluxer.com'}}).desktopConfig;
 		const canary = loadDesktop({channel: 'canary', settings: {app_origin: 'https://canary.fluxer.com'}}).desktopConfig;
 
-		assert.equal(stable.getAppUrlFallback('https://fluxer.com/app'), 'https://web.fluxer.app');
-		assert.equal(stable.getAppUrlFallback('https://fluxer.com/channels/@me'), 'https://web.fluxer.app');
+		assert.equal(stable.getAppUrlFallback('https://fluxer.com/app'), 'https://fluxer.pitzuna.com');
+		assert.equal(stable.getAppUrlFallback('https://fluxer.com/channels/@me'), 'https://fluxer.pitzuna.com');
 		assert.equal(canary.getAppUrlFallback('https://canary.fluxer.com/app'), 'https://web.canary.fluxer.app');
-		assert.equal(stable.getAppUrlFallback('https://web.fluxer.app/channels/@me'), null);
+		assert.equal(stable.getAppUrlFallback('https://fluxer.pitzuna.com/channels/@me'), null);
 		assert.equal(stable.getAppUrlFallback('https://canary.fluxer.com/app'), null);
 		assert.equal(stable.getAppUrlFallback('not a url'), null);
 	});
@@ -192,7 +192,7 @@ describe('DesktopConfig custom app url', () => {
 	test('ignores invalid or non-http app_url values', () => {
 		for (const value of ['ftp://example.org', 'javascript:alert(1)', '', 42]) {
 			const {desktopConfig} = loadDesktop({settings: {app_url: value}});
-			assert.equal(desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+			assert.equal(desktopConfig.getAppUrl(), 'https://fluxer.pitzuna.com');
 			assert.equal(desktopConfig.getCustomAppUrl(), null);
 		}
 	});
@@ -205,7 +205,7 @@ describe('DesktopConfig custom app url', () => {
 		assert.equal(desktopConfig.getAppUrl(), 'http://localhost:8088/');
 		assert.equal(desktopConfig.setCustomAppUrl(null), true);
 		assert.equal('app_url' in readSettings(), false);
-		assert.equal(desktopConfig.getAppUrl(), 'https://web.fluxer.app');
+		assert.equal(desktopConfig.getAppUrl(), 'https://fluxer.pitzuna.com');
 	});
 
 	test('runtime override beats the persisted app_url', () => {

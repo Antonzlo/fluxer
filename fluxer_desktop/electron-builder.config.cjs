@@ -8,11 +8,11 @@ const path = require('node:path');
 const {promisify} = require('node:util');
 const execFileAsync = promisify(execFile);
 const isLinuxBuild = process.argv.includes('--linux');
-const productName = isCanary ? 'Fluxer Canary' : 'Fluxer';
+const productName = isCanary ? 'Fluxer Canary' : 'Potryasker';
 const linuxOptDirName = isCanary ? 'fluxer-canary' : 'Fluxer';
 const installedProductName = isLinuxBuild ? linuxOptDirName : productName;
-const artifactProductName = isCanary ? 'Fluxer-Canary' : 'Fluxer';
-const appId = isCanary ? 'app.fluxer.canary' : 'app.fluxer';
+const artifactProductName = isCanary ? 'Fluxer-Canary' : 'Potryasker';
+const appId = isCanary ? 'app.fluxer.canary' : 'app.potryasker';
 const iconDir = isCanary ? 'icons-canary' : 'icons-stable';
 const packageName = isCanary ? 'fluxer_desktop_canary' : 'fluxer_desktop';
 const linuxPackageName = isCanary ? 'fluxer-canary' : 'fluxer';
@@ -76,6 +76,10 @@ const winGameCaptureTargetArchs =
 const winTargets = [
 	{
 		target: 'dir',
+		arch: targetArchs,
+	},
+	{
+		target: 'nsis',
 		arch: targetArchs,
 	},
 ];
@@ -1649,6 +1653,12 @@ module.exports = {
 	win: {
 		icon: `build_resources/${iconDir}/icon.ico`,
 		target: winTargets,
+	},
+	nsis: {
+		oneClick: false,
+		perMachine: false,
+		allowToChangeInstallationDirectory: true,
+		artifactName: `${artifactProductName}-\${version}-setup-\${os}-\${arch}.\${ext}`,
 	},
 	portable: {
 		artifactName: `${artifactProductName}-\${version}-portable-\${os}-\${arch}.\${ext}`,

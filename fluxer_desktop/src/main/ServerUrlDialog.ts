@@ -27,7 +27,7 @@ button.primary{background:#4a6cf7;border-color:#4a6cf7;color:#fff}
 </style></head><body>
 <form id="f">
 <h1>Server URL</h1>
-<p>Web client address this app should load. Leave empty for the official Fluxer. The app restarts after saving.</p>
+<p>Web client address this app should load. Leave empty for the default (fluxer.pitzuna.com). The app restarts after saving.</p>
 <input type="text" name="url" value="${escapeHtml(currentUrl)}" placeholder="https://chat.example.org" autofocus spellcheck="false">
 ${error ? `<div class="err">${escapeHtml(error)}</div>` : ''}
 <div class="row">

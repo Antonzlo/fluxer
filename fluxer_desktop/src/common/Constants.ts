@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 export const APP_PROTOCOL = 'fluxer';
-export const STABLE_APP_URL = 'https://web.fluxer.app';
+export const STABLE_APP_URL = 'https://fluxer.pitzuna.com';
 export const CANARY_APP_URL = 'https://web.canary.fluxer.app';
 export const STABLE_MIGRATED_APP_ORIGIN = 'https://fluxer.com';
 export const CANARY_MIGRATED_APP_ORIGIN = 'https://canary.fluxer.com';
