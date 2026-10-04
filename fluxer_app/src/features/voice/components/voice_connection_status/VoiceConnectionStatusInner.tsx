@@ -296,91 +296,96 @@ const ResolvedVoiceConnectionStatusInner = observer(function ResolvedVoiceConnec
 				data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-info"
 			>
 				<div
-					className={styles.channelSourceRow}
-					data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-row"
+					className={styles.connectionSummaryRow}
+					data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-summary-row"
 				>
-					<FocusRing offset={-2} data-flx="voice.voice-connection-status.voice-connection-status-inner.focus-ring--2">
-						<Link
-							to={channelRoute}
-							className={styles.channelSourceLink}
-							aria-label={i18n._(JUMP_TO_DESCRIPTOR, {channelSourceLabel})}
-							onContextMenu={handleVoiceConnectionStatusContextMenu}
-							data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-link.voice-connection-status-context-menu"
-						>
-							{isPrivateChannel ? (
-								<span
-									className={styles.channelSourceText}
-									data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-text"
-								>
-									{channelDisplayName}
-								</span>
-							) : (
-								<span
-									className={styles.channelSourceText}
-									data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-text--2"
-								>
+					<div
+						className={styles.channelSourceRow}
+						data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-row"
+					>
+						<FocusRing offset={-2} data-flx="voice.voice-connection-status.voice-connection-status-inner.focus-ring--2">
+							<Link
+								to={channelRoute}
+								className={styles.channelSourceLink}
+								aria-label={i18n._(JUMP_TO_DESCRIPTOR, {channelSourceLabel})}
+								onContextMenu={handleVoiceConnectionStatusContextMenu}
+								data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-link.voice-connection-status-context-menu"
+							>
+								{isPrivateChannel ? (
 									<span
-										className={styles.channelSourceChannel}
-										data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-channel"
+										className={styles.channelSourceText}
+										data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-text"
 									>
 										{channelDisplayName}
 									</span>
+								) : (
 									<span
-										className={styles.channelSourceSeparator}
-										data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-separator"
+										className={styles.channelSourceText}
+										data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-text--2"
 									>
-										{' '}
-										/{' '}
+										<span
+											className={styles.channelSourceChannel}
+											data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-channel"
+										>
+											{channelDisplayName}
+										</span>
+										<span
+											className={styles.channelSourceSeparator}
+											data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-separator"
+										>
+											{' '}
+											/{' '}
+										</span>
+										<span
+											className={styles.channelSourceGuild}
+											data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-guild"
+										>
+											{guildDisplayName}
+										</span>
 									</span>
-									<span
-										className={styles.channelSourceGuild}
-										data-flx="voice.voice-connection-status.voice-connection-status-inner.channel-source-guild"
-									>
-										{guildDisplayName}
-									</span>
-								</span>
-							)}
-						</Link>
-					</FocusRing>
-				</div>
-				{showVoiceConnectionId && connectionId && (
-					<div
-						className={styles.connectionIdRow}
-						data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-row"
-					>
-						{isMobile ? (
-							<DeviceMobileIcon
-								weight="regular"
-								className={styles.connectionIdIcon}
-								data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-icon"
-							/>
-						) : (
-							<DesktopIcon
-								weight="regular"
-								className={styles.connectionIdIcon}
-								data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-icon--2"
-							/>
-						)}
-						<div
-							className={styles.connectionIdValue}
-							data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-value"
-						>
-							<Tooltip
-								text={connectionId}
-								position="top"
-								align="center"
-								data-flx="voice.voice-connection-status.voice-connection-status-inner.tooltip--3"
-							>
-								<span
-									className={styles.connectionIdValueText}
-									data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-value-text"
-								>
-									{connectionId}
-								</span>
-							</Tooltip>
-						</div>
+								)}
+							</Link>
+						</FocusRing>
 					</div>
-				)}
+					{showVoiceConnectionId && connectionId && (
+						<div
+							className={styles.connectionIdRow}
+							data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-row"
+						>
+							{isMobile ? (
+								<DeviceMobileIcon
+									weight="regular"
+									className={styles.connectionIdIcon}
+									data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-icon"
+								/>
+							) : (
+								<DesktopIcon
+									weight="regular"
+									className={styles.connectionIdIcon}
+									data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-icon--2"
+								/>
+							)}
+							<div
+								className={styles.connectionIdValue}
+								data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-value"
+							>
+								<Tooltip
+									text={connectionId}
+									position="top"
+									align="center"
+									data-flx="voice.voice-connection-status.voice-connection-status-inner.tooltip--3"
+								>
+									<span
+										className={styles.connectionIdValueText}
+										data-flx="voice.voice-connection-status.voice-connection-status-inner.connection-id-value-text"
+									>
+										{connectionId}
+									</span>
+								</Tooltip>
+							</div>
+						</div>
+					)}
+				</div>
 				{shouldShowVoiceConnectionAvatarStack && (
 					<div
 						className={styles.channelAvatarStack}

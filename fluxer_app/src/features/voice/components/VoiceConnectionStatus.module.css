@@ -118,9 +118,17 @@
 	gap: var(--spacing-2);
 }
 
+.connectionSummaryRow {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-3);
+	min-width: 0;
+}
+
 .channelSourceRow {
 	display: flex;
 	align-items: center;
+	flex: 1 1 auto;
 	min-width: 0;
 }
 
@@ -190,7 +198,9 @@
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-2);
+	flex: 0 1 auto;
 	min-width: 0;
+	max-width: 55%;
 	font-size: 0.75rem;
 	line-height: 1rem;
 	color: var(--text-secondary);

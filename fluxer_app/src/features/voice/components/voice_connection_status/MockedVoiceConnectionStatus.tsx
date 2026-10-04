@@ -372,72 +372,80 @@ export const MockedVoiceConnectionStatus = observer(() => {
 				data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-info"
 			>
 				<div
-					className={styles.channelSourceRow}
-					data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-row"
+					className={styles.connectionSummaryRow}
+					data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-summary-row"
 				>
-					<FocusRing offset={-2} data-flx="voice.voice-connection-status.mocked-voice-connection-status.focus-ring--3">
-						<button
-							type="button"
-							className={styles.channelSourceLink}
-							data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-link.button"
-						>
-							<span
-								className={styles.channelSourceText}
-								data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-text"
-							>
-								<span
-									className={styles.channelSourceChannel}
-									data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-channel"
-								>
-									general
-								</span>
-								<span
-									className={styles.channelSourceSeparator}
-									data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-separator"
-								>
-									{' '}
-									/{' '}
-								</span>
-								<span
-									className={styles.channelSourceGuild}
-									data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-guild"
-								>
-									Mock Guild
-								</span>
-							</span>
-						</button>
-					</FocusRing>
-				</div>
-				{showVoiceConnectionId && (
 					<div
-						className={styles.connectionIdRow}
-						data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-row"
+						className={styles.channelSourceRow}
+						data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-row"
 					>
-						<DesktopIcon
-							weight="regular"
-							className={styles.connectionIdIcon}
-							data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-icon"
-						/>
-						<div
-							className={styles.connectionIdValue}
-							data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-value"
+						<FocusRing
+							offset={-2}
+							data-flx="voice.voice-connection-status.mocked-voice-connection-status.focus-ring--3"
 						>
-							<Tooltip
-								text="mock-connection-1"
-								position="top"
-								align="center"
-								data-flx="voice.voice-connection-status.mocked-voice-connection-status.tooltip--4"
+							<button
+								type="button"
+								className={styles.channelSourceLink}
+								data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-link.button"
 							>
 								<span
-									className={styles.connectionIdValueText}
-									data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-value-text"
+									className={styles.channelSourceText}
+									data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-text"
 								>
-									mock-connection-1
+									<span
+										className={styles.channelSourceChannel}
+										data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-channel"
+									>
+										general
+									</span>
+									<span
+										className={styles.channelSourceSeparator}
+										data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-separator"
+									>
+										{' '}
+										/{' '}
+									</span>
+									<span
+										className={styles.channelSourceGuild}
+										data-flx="voice.voice-connection-status.mocked-voice-connection-status.channel-source-guild"
+									>
+										Mock Guild
+									</span>
 								</span>
-							</Tooltip>
-						</div>
+							</button>
+						</FocusRing>
 					</div>
-				)}
+					{showVoiceConnectionId && (
+						<div
+							className={styles.connectionIdRow}
+							data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-row"
+						>
+							<DesktopIcon
+								weight="regular"
+								className={styles.connectionIdIcon}
+								data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-icon"
+							/>
+							<div
+								className={styles.connectionIdValue}
+								data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-value"
+							>
+								<Tooltip
+									text="mock-connection-1"
+									position="top"
+									align="center"
+									data-flx="voice.voice-connection-status.mocked-voice-connection-status.tooltip--4"
+								>
+									<span
+										className={styles.connectionIdValueText}
+										data-flx="voice.voice-connection-status.mocked-voice-connection-status.connection-id-value-text"
+									>
+										mock-connection-1
+									</span>
+								</Tooltip>
+							</div>
+						</div>
+					)}
+				</div>
 			</div>
 			<div
 				className={styles.mediaSection}
