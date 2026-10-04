@@ -87,6 +87,7 @@ import EntranceSoundLibrary from '@app/features/voice/state/EntranceSoundLibrary
 import LocalVoiceState from '@app/features/voice/state/LocalVoiceState';
 import ParticipantVolume from '@app/features/voice/state/ParticipantVolume';
 import VoiceSettings from '@app/features/voice/state/VoiceSettings';
+import VoiceTransmitting from '@app/features/voice/state/VoiceTransmitting';
 import {buildMicrophonePublishOptions, sendsStereoMicrophone} from '@app/features/voice/utils/AudioPublishOptions';
 import {
 	buildCameraPublishOptions,
@@ -1741,9 +1742,11 @@ export class VoiceEngineV2AppMediaExecutionAdapter extends Store {
 		const track = this.getLocalAudioTrack(room);
 		if (!track || !room.localParticipant) return;
 		let stopLevel: (() => void) | null = null;
+		const localIdentity = room.localParticipant.identity;
 		const bind = (): void => {
 			stopLevel?.();
 			stopLevel = null;
+			VoiceTransmitting.set(localIdentity, false);
 			this.setLocalParticipantAudioLevelSpeaking(room, this.getLocalSpeakingOverrideState(room) ?? false);
 			const processor = readVoiceInputProcessor(track);
 			if (!processor) {
@@ -1752,13 +1755,16 @@ export class VoiceEngineV2AppMediaExecutionAdapter extends Store {
 			}
 			processor.reportRuntime();
 			stopLevel = processor.onLevel((level) => {
-				this.setLocalParticipantAudioLevelSpeaking(room, this.getLocalSpeakingOverrideState(room) ?? level.speaking);
+				const override = this.getLocalSpeakingOverrideState(room);
+				this.setLocalParticipantAudioLevelSpeaking(room, override ?? level.speaking);
+				VoiceTransmitting.set(localIdentity, override ?? level.open);
 			});
 		};
 		track.on(TrackEvent.TrackProcessorUpdate, bind);
 		this.speakingDetectorCleanup = () => {
 			track.off(TrackEvent.TrackProcessorUpdate, bind);
 			stopLevel?.();
+			VoiceTransmitting.set(localIdentity, false);
 			NoiseSuppressionAvailability.clearVoiceInputRuntime(track);
 		};
 		bind();

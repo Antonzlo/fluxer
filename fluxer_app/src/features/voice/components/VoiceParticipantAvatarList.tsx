@@ -74,6 +74,7 @@ export interface VoiceParticipantAvatarEntry {
 	userId: string;
 	connectionId: string;
 	speaking: boolean;
+	transmitting: boolean;
 	hasCamera: boolean;
 	hasScreenShare: boolean;
 	isLocal: boolean;
@@ -241,6 +242,7 @@ export function useVoiceParticipantAvatarEntries({
 				userId: voiceState.user_id,
 				connectionId,
 				speaking: entryVoiceState.speaking,
+				transmitting: entryVoiceState.transmitting,
 				hasCamera: snapshot?.isCameraEnabled ?? false,
 				hasScreenShare: snapshot?.isScreenShareEnabled ?? false,
 				isLocal,
@@ -443,6 +445,7 @@ export const VoiceParticipantSpeakingAvatarStack: React.FC<VoiceParticipantSpeak
 							user={user}
 							size={avatarSize}
 							speaking={speaking}
+							transmitting={entry?.transmitting}
 							muted={entry?.selfMute}
 							deafened={entry?.selfDeaf}
 							guildId={guildId}
@@ -586,6 +589,7 @@ export const VoiceParticipantWrappedAvatarList: React.FC<VoiceParticipantWrapped
 					user={entry.user}
 					size={avatarSize}
 					speaking={entry.speaking}
+					transmitting={entry.transmitting}
 					muted={entry.selfMute}
 					deafened={entry.selfDeaf}
 					guildId={guildId}

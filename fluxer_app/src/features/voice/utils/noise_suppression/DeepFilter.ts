@@ -58,7 +58,15 @@ type DeepFilterWorkletMessage =
 	| {type: 'ready'; frameLength: number}
 	| {type: 'primed'}
 	| {type: 'error'; message: string}
-	| {type: 'health'; inputRms: number; outputRms: number; nonFinite: boolean; frame: number; contextTime: number};
+	| {
+			type: 'health';
+			inputRms: number;
+			outputRms: number;
+			nonFinite: boolean;
+			underruns?: number;
+			frame: number;
+			contextTime: number;
+	  };
 
 class DeepFilterUnavailableError extends Error {
 	constructor(

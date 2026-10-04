@@ -5,6 +5,7 @@ const SEED_SECONDS = 0.3;
 const LOOKAHEAD_SECONDS = 0.01;
 const ATTACK_SECONDS = 0.005;
 const RELEASE_SECONDS = 0.02;
+const TRANSMITTING_MIN_GAIN = 0.05;
 
 class VoiceGateProcessor extends AudioWorkletProcessor {
 	constructor(options) {
@@ -136,6 +137,7 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
 				floorRms,
 				thresholdRms,
 				speaking: this.speaking,
+				open: this.gain > TRANSMITTING_MIN_GAIN,
 				nonFinite: this.nonFinite,
 				frame: this.frame,
 				contextTime: currentTime,

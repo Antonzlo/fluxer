@@ -61,6 +61,7 @@ import {
 	setVoiceDebugEventSinkAlwaysOnTop,
 	VOICE_DEBUG_EVENT_SINK_POPOUT_KEY,
 } from '@electron/main/VoiceDebugEventSinkPopout';
+import {acquireVoicePriority, releaseVoicePriority} from '@electron/main/VoicePriority';
 import {
 	clearSavedWindowBounds,
 	closeThemeStudioPopoutWindow,
@@ -202,6 +203,12 @@ export function registerIpcHandlers(): void {
 	});
 	ipcMain.on('streaming-priority-release', () => {
 		releaseStreamingPriority();
+	});
+	ipcMain.on('voice-priority-acquire', (event) => {
+		acquireVoicePriority(event.sender);
+	});
+	ipcMain.on('voice-priority-release', (event) => {
+		releaseVoicePriority(event.sender);
 	});
 	ipcMain.on('streaming-priority-reset', () => {
 		resetStreamingPriority();

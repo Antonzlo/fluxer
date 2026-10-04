@@ -5,6 +5,9 @@ const RENDER_QUANTUM = 128;
 const WARM_UP_FRAMES = 8;
 const HEALTH_REPORT_FRAMES = 50;
 const MAX_NON_FINITE_FRAMES = 3;
+// Output is held back until two model frames (~20 ms) are buffered, adding ~10 ms of latency over the minimum, so the 480-vs-128 sample cadence never leaves the ring short.
+const PRE_ROLL_FRAMES = 2;
+const DRY_FADE_SAMPLES = RENDER_QUANTUM;
 
 class Utf8Decoder {
 	decode(bytes) {
@@ -164,6 +167,9 @@ class DeepFilterProcessor extends AudioWorkletProcessor {
 		this.healthSamples = 0;
 		this.healthNonFinite = false;
 		this.processedFrames = 0;
+		this.underruns = 0;
+		this.dryMix = 0;
+		this.lastProcessed = 0;
 		this.silence = new Float32Array(RENDER_QUANTUM);
 		this.port.onmessage = (event) => this.handleMessage(event.data);
 		try {
@@ -171,6 +177,7 @@ class DeepFilterProcessor extends AudioWorkletProcessor {
 			this.handle = this.bindings.create(new Uint8Array(config.modelBytes), config.attenLimDb);
 			this.frameLength = this.bindings.frameLength(this.handle);
 			this.ringSize = this.frameLength * 4;
+			this.preRollSamples = this.frameLength * PRE_ROLL_FRAMES;
 			this.inputRing = new Float32Array(this.ringSize);
 			this.outputRing = new Float32Array(this.ringSize);
 			this.frame = new Float32Array(this.frameLength);
@@ -191,6 +198,9 @@ class DeepFilterProcessor extends AudioWorkletProcessor {
 		this.outputWrite = 0;
 		this.outputRead = 0;
 		this.primed = false;
+		this.refilling = false;
+		this.dryMix = 0;
+		this.lastProcessed = 0;
 		if (this.highPass) {
 			this.highPass.x1 = 0;
 			this.highPass.x2 = 0;
@@ -303,6 +313,7 @@ class DeepFilterProcessor extends AudioWorkletProcessor {
 			inputRms: Math.sqrt(this.healthInputEnergy / samples),
 			outputRms: Math.sqrt(this.healthOutputEnergy / samples),
 			nonFinite: this.healthNonFinite,
+			underruns: this.underruns,
 			frame: this.processedFrames,
 			contextTime: currentTime,
 		});
@@ -311,6 +322,20 @@ class DeepFilterProcessor extends AudioWorkletProcessor {
 		this.healthOutputEnergy = 0;
 		this.healthSamples = 0;
 		this.healthNonFinite = false;
+	}
+
+	mixQuantum(input, output) {
+		const target = this.refilling ? 1 : 0;
+		const step = 1 / DRY_FADE_SAMPLES;
+		for (let i = 0; i < RENDER_QUANTUM; i++) {
+			if (this.dryMix < target) this.dryMix = Math.min(target, this.dryMix + step);
+			else if (this.dryMix > target) this.dryMix = Math.max(target, this.dryMix - step);
+			if (!this.refilling) {
+				this.lastProcessed = this.outputRing[this.outputRead];
+				this.outputRead = (this.outputRead + 1) % this.ringSize;
+			}
+			output[i] = this.lastProcessed * (1 - this.dryMix) + input[i] * this.dryMix;
+		}
 	}
 
 	process(inputs, outputs) {
@@ -334,15 +359,18 @@ class DeepFilterProcessor extends AudioWorkletProcessor {
 			output.set(input);
 			return true;
 		}
-		if (this.available(this.outputWrite, this.outputRead) < RENDER_QUANTUM) return true;
-		for (let i = 0; i < RENDER_QUANTUM; i++) {
-			output[i] = this.outputRing[this.outputRead];
-			this.outputRead = (this.outputRead + 1) % this.ringSize;
-		}
+		const buffered = this.available(this.outputWrite, this.outputRead);
 		if (!this.primed) {
+			if (buffered < this.preRollSamples) return true;
 			this.primed = true;
 			this.port.postMessage({type: 'primed'});
+		} else if (this.refilling && buffered >= this.preRollSamples) {
+			this.refilling = false;
+		} else if (!this.refilling && buffered < RENDER_QUANTUM) {
+			this.refilling = true;
+			this.underruns++;
 		}
+		this.mixQuantum(input, output);
 		return true;
 	}
 }

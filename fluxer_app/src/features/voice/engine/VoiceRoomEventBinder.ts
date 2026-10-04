@@ -3,6 +3,7 @@
 import {SoundType} from '@app/features/notification/utils/SoundUtils';
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import * as SoundCommands from '@app/features/ui/commands/SoundCommands';
+import {getElectronAPI} from '@app/features/ui/utils/NativeUtils';
 import ScreenShareCodecNegotiation from '@app/features/voice/engine/ScreenShareCodecNegotiation';
 import ScreenSharePublicationMigration from '@app/features/voice/engine/ScreenSharePublicationMigration';
 import {getEffectiveAudioState} from '@app/features/voice/engine/VoiceEffectiveAudioState';
@@ -307,6 +308,7 @@ export function bindRoomEvents(
 			bindScreenShareNegotiation();
 			dependencies.permissions.applyDeafen(room, getEffectiveAudioState().effectiveDeaf);
 			dependencies.connection.markConnected();
+			getElectronAPI()?.acquireVoicePriority?.();
 			await callbacks.onConnected();
 			const {userId, connectionId} = parseVoiceParticipantIdentity(room.localParticipant.identity);
 			if (userId) {
@@ -330,6 +332,7 @@ export function bindRoomEvents(
 		RoomEvent.Disconnected,
 		guard(attemptId, () => {
 			roomReconnecting = false;
+			getElectronAPI()?.releaseVoicePriority?.();
 			screenSharePublicationAwaitingReconnect = null;
 			participantSpeakingDisposers.forEach(({dispose}) => dispose());
 			participantSpeakingDisposers.clear();

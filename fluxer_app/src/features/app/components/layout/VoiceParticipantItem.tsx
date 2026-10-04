@@ -240,6 +240,7 @@ export const VoiceParticipantItem = observer(function VoiceParticipantItem({
 						user={user}
 						size={24}
 						speaking={isActuallySpeaking}
+						transmitting={displayState.transmitting}
 						guildId={guildId}
 						data-flx="app.voice-participant-item.avatar-with-presence"
 					/>
