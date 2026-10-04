@@ -71,7 +71,7 @@ function pushSpectatorEntry(
 }
 
 export function useStreamSpectators(streamKey: string, streamerUserId?: string | null): StreamSpectatorsResult {
-	useMediaEngineVersion();
+	const engineVersion = useMediaEngineVersion();
 	const localConnectionId = MediaEngine.connectionId;
 	const spectatorSortSnapshotRef = useRef(createVoiceParticipantSortSnapshot());
 	return useMemo(() => {
@@ -119,5 +119,5 @@ export function useStreamSpectators(streamKey: string, streamerUserId?: string |
 			viewerIds.push(entry.userId);
 		}
 		return {viewerIds, viewerUsers, spectatorEntries};
-	}, [localConnectionId, streamerUserId, streamKey]);
+	}, [engineVersion, localConnectionId, streamerUserId, streamKey]);
 }
