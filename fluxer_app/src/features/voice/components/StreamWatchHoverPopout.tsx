@@ -341,12 +341,18 @@ export const StreamWatchHoverPopout = observer(function StreamWatchHoverPopout({
 		// callback, so a ref added only once streaming starts would never be attached to the already-mounted row.
 		return cloneElement(child, {...fallbackProps, ref: mergedRef});
 	}
+	// Mount the portal only while open: the popover portal sweep deletes empty floating portals, which would leave a
+	// permanently mounted one detached from the document.
 	return (
 		<>
 			{cloneElement(child, referenceProps)}
-			<FloatingPortal root={portalRoot ?? undefined} data-flx="voice.stream-watch-hover-popout.floating-portal">
-				<AnimatePresence data-flx="voice.stream-watch-hover-popout.animate-presence">
-					{isOpen && (
+			<AnimatePresence data-flx="voice.stream-watch-hover-popout.animate-presence">
+				{isOpen && (
+					<FloatingPortal
+						key="card"
+						root={portalRoot ?? undefined}
+						data-flx="voice.stream-watch-hover-popout.floating-portal"
+					>
 						<motion.div
 							data-flx="voice.stream-watch-hover-popout.div"
 							{...floatingProps}
@@ -370,9 +376,9 @@ export const StreamWatchHoverPopout = observer(function StreamWatchHoverPopout({
 								data-flx="voice.stream-watch-hover-popout.stream-watch-hover-card"
 							/>
 						</motion.div>
-					)}
-				</AnimatePresence>
-			</FloatingPortal>
+					</FloatingPortal>
+				)}
+			</AnimatePresence>
 		</>
 	);
 });

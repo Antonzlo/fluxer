@@ -3,6 +3,7 @@
 
 import {LongPressable} from '@app/features/app/components/LongPressable';
 import FocusRing from '@app/features/ui/focus_ring/FocusRing';
+import {scheduleFloatingPortalSweep} from '@app/features/ui/popover/PopoverPortalCleanup';
 import {StreamWatchHoverPopout} from '@app/features/voice/components/StreamWatchHoverPopout';
 import {act} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -91,5 +92,18 @@ describe('StreamWatchHoverPopout', () => {
 		await act(async () => root.render(renderRow(false)));
 		await hover(container.querySelector('[data-testid="row"]')!);
 		expect(document.querySelector('[data-testid="card"]')).toBeNull();
+	});
+
+	it('still opens the card after the popover portal sweep removed empty floating portals', async () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const root = createRoot(container);
+		await act(async () => root.render(renderRow(true)));
+		await act(async () => {
+			scheduleFloatingPortalSweep();
+			await sleep(400);
+		});
+		await hover(container.querySelector('[data-testid="row"]')!);
+		expect(document.querySelector('[data-testid="card"]')).not.toBeNull();
 	});
 });
