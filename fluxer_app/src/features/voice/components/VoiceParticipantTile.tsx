@@ -785,10 +785,21 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 			VoiceCallLayoutCommands.setPinnedParticipant(null);
 		} else {
 			VoiceCallLayoutCommands.setPinnedParticipant(identity, asPinnableVoiceTrackSource(trackRef.source));
+			if (isScreenShare && !isOwnScreenShare && !isWatching) startWatching();
 			onClick?.(identity);
 		}
 		VoiceCallLayoutCommands.markUserOverride();
-	}, [identity, isInsideTilePopout, onClick, pinnedParticipantSource, trackRef.source]);
+	}, [
+		identity,
+		isInsideTilePopout,
+		isOwnScreenShare,
+		isScreenShare,
+		isWatching,
+		onClick,
+		pinnedParticipantSource,
+		startWatching,
+		trackRef.source,
+	]);
 	const handleTileKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLDivElement>) => {
 			if (!isKeyboardActivationKey(event.key)) return;
