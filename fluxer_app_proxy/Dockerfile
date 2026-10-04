@@ -24,11 +24,7 @@ ARG RUST_VERSION=1.98.1
 ENV RUSTUP_HOME=/usr/local/rustup \
 	CARGO_HOME=/usr/local/cargo \
 	PATH=/usr/local/cargo/bin:$PATH
-# CI may pre-build the wasm artifacts outside Docker (cached by source hash) and
-# ship them in the build context as .wasm-prebuilt/; the toolchain is then skipped.
-RUN --mount=type=bind,source=.,target=/ctx \
-	set -eux; \
-	if [ -d /ctx/.wasm-prebuilt ]; then echo "prebuilt wasm artifacts found, skipping Rust toolchain"; exit 0; fi; \
+RUN set -eux; \
 	curl --retry 3 --retry-all-errors --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
 		| sh -s -- -y --no-modify-path --profile minimal --default-toolchain "${RUST_VERSION}" \
 			--target wasm32-unknown-unknown; \
@@ -80,17 +76,9 @@ COPY fluxer_app/src/ ./fluxer_app/src/
 ENV BUILD_VERSION=${BUILD_VERSION} \
 	PUBLIC_ASSET_BASE_URL=${PUBLIC_ASSET_BASE_URL}
 
-# With prebuilt wasm artifacts, install them and turn `pnpm wasm:codegen` (which
-# execs $FLUXER_CI_BIN when executable) into a no-op.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	--mount=type=cache,target=/usr/local/cargo/git \
-	--mount=type=bind,source=.,target=/ctx \
-	if [ -d /ctx/.wasm-prebuilt ]; then \
-		cp -a /ctx/.wasm-prebuilt/libfluxcore /ctx/.wasm-prebuilt/libfluxwebp fluxer_app/pkgs/ \
-		&& cp /ctx/.wasm-prebuilt/MarkdownParserWasmBytes.ts fluxer_app/src/features/messaging/utils/markdown/parser/ \
-		&& export FLUXER_CI_BIN="$(command -v true)"; \
-	fi \
-	&& cd fluxer_app && pnpm build
+	cd fluxer_app && pnpm build
 
 # ---------- Stage 2: The one canonical asset tree every architecture serves ----------
 # Stage for CI to extract the full dist (docker bake app-dist target)
@@ -100,8 +88,6 @@ COPY --from=app-build /usr/src/app/fluxer_app/dist /dist
 FROM alpine:3.24 AS app-assets
 ARG BUNDLE_LOCAL_ASSETS=true
 ARG PUBLIC_ASSET_BASE_URL=""
-ARG PRECOMPRESS_BROTLI_QUALITY=11
-ENV PRECOMPRESS_BROTLI_QUALITY=${PRECOMPRESS_BROTLI_QUALITY}
 COPY fluxer_app_proxy/scripts/precompress_assets.sh /usr/local/bin/precompress_assets.sh
 RUN apk add --no-cache brotli
 RUN --mount=type=bind,from=app-dist,source=/dist,target=/dist \

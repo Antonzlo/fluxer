@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Packaging-only image for the fork's CI. The proxy binary and the precompressed
+# web client are built on the runner (with caches) by publish-app-proxy-fork.yaml
+# and staged in the build context:
+#   fluxer-app-proxy   release binary
+#   assets/            fluxer_app/dist after precompress_assets.sh
+# The regular fluxer_app_proxy/Dockerfile builds everything from source.
+FROM debian:trixie-slim
+
+ARG BUILD_VERSION=""
+ARG SOURCE_SHA=""
+ARG SOURCE_DATE=""
+
+LABEL org.opencontainers.image.title="fluxer-app-proxy"
+LABEL org.opencontainers.image.description="Fluxer web app and edge proxy"
+LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"
+LABEL org.opencontainers.image.vendor="Fluxer"
+LABEL org.opencontainers.image.url="https://fluxer.app"
+LABEL org.opencontainers.image.documentation="https://docs.fluxer.app"
+LABEL org.opencontainers.image.source="https://github.com/fluxerapp/fluxer"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.revision="${SOURCE_SHA}"
+LABEL org.opencontainers.image.created="${SOURCE_DATE}"
+LABEL app.fluxer.build-version="${BUILD_VERSION}"
+
+WORKDIR /srv/app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ca-certificates curl libjemalloc2 \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY fluxer-app-proxy /usr/local/bin/fluxer-app-proxy
+COPY assets ./static/
+
+ENV BUILD_VERSION="${BUILD_VERSION}"
+ENV FLUXER_APP_PROXY_HOST="0.0.0.0"
+ENV FLUXER_APP_PROXY_PORT="8080"
+ENV LD_PRELOAD=libjemalloc.so.2
+ENV MALLOC_CONF="background_thread:true,metadata_thp:auto,dirty_decay_ms:5000,muzzy_decay_ms:5000"
+
+USER 65532:65532
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+	CMD curl -f http://127.0.0.1:${FLUXER_APP_PROXY_PORT:-8080}/_ready || exit 1
+
+CMD ["/usr/local/bin/fluxer-app-proxy"]

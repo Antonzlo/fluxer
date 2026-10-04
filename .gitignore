@@ -62,4 +62,5 @@
 **/.DS_Store
 **/Thumbs.db
 
-/.wasm-prebuilt/
+# fork CI staging dir for the app-proxy image
+/.fork-build/
