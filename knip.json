@@ -7,7 +7,8 @@
 		"fluxer_admin/src/styles/app.css",
 		"fluxer_admin/static/htmx.min.js",
 		"tools/ci/templates/libfluxcore_wrapper.d.ts",
-		"tools/ci/templates/libfluxcore_wrapper.js"
+		"tools/ci/templates/libfluxcore_wrapper.js",
+		"tools/remote-web/edge.mjs"
 	],
 	"ignoreIssues": {
 		"fluxer_app/scripts/build/Config.tsx": ["exports"],
