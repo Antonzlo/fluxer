@@ -5,8 +5,10 @@ import {
 	isVoiceEngineV2AppParticipantSpeaking,
 	type VoiceEngineV2AppParticipantSpeakingSnapshot,
 } from '@app/features/voice/engine/v2/VoiceEngineV2AppSelectors';
+import VoiceTransmitting from '@app/features/voice/state/VoiceTransmitting';
 
 export interface VoiceParticipantDisplaySnapshot extends VoiceEngineV2AppParticipantSpeakingSnapshot {
+	identity?: string | null;
 	isMicrophoneEnabled?: boolean | null;
 	isCameraEnabled?: boolean | null;
 	isScreenShareEnabled?: boolean | null;
@@ -28,6 +30,7 @@ export interface ResolveVoiceParticipantDisplayStateArgs extends ResolveVoicePar
 
 export interface VoiceParticipantDisplayState {
 	speaking: boolean;
+	transmitting: boolean;
 	selfMute: boolean;
 	selfDeaf: boolean;
 	guildMute: boolean;
@@ -57,6 +60,14 @@ export function resolveVoiceParticipantSpeaking(args: ResolveVoiceParticipantSpe
 	return true;
 }
 
+export function resolveVoiceParticipantTransmitting(args: ResolveVoiceParticipantSpeakingArgs): boolean {
+	if (!VoiceTransmitting.isTransmitting(args.participant?.identity)) return false;
+	if (resolveSelfMute(args)) return false;
+	if (args.permissionMuted) return false;
+	if (args.voiceState?.mute ?? false) return false;
+	return true;
+}
+
 export function resolveVoiceParticipantDisplayState({
 	participant,
 	voiceState,
@@ -74,12 +85,16 @@ export function resolveVoiceParticipantDisplayState({
 		localSelfMute,
 		permissionMuted,
 	});
+	const transmitting =
+		!speaking &&
+		resolveVoiceParticipantTransmitting({participant, voiceState, isLocalConnection, localSelfMute, permissionMuted});
 	const selfMute = resolveSelfMute({participant, voiceState, isLocalConnection, localSelfMute}) || permissionMuted;
 	const selfDeaf = isLocalConnection ? localSelfDeaf : (voiceState?.self_deaf ?? false);
 	const remoteCameraOn = voiceState?.self_video ?? participant?.isCameraEnabled ?? false;
 	const remoteStreaming = voiceState?.self_stream ?? participant?.isScreenShareEnabled ?? false;
 	return {
 		speaking,
+		transmitting,
 		selfMute,
 		selfDeaf,
 		guildMute: voiceState?.mute ?? false,
@@ -91,6 +106,7 @@ export function resolveVoiceParticipantDisplayState({
 
 export interface VoiceParticipantAvatarEntryVoiceState {
 	speaking: boolean;
+	transmitting: boolean;
 	selfMute: boolean;
 	selfDeaf: boolean;
 }
@@ -120,6 +136,7 @@ export function resolveVoiceParticipantAvatarEntryVoiceState({
 	});
 	return {
 		speaking: display.speaking,
+		transmitting: display.transmitting,
 		selfMute: display.selfMute || display.guildMute,
 		selfDeaf: display.selfDeaf || display.guildDeaf,
 	};

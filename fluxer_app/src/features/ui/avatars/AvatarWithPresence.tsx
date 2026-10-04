@@ -31,6 +31,7 @@ interface Props {
 	user: User;
 	size: number;
 	speaking?: boolean;
+	transmitting?: boolean;
 	muted?: boolean;
 	deafened?: boolean;
 	className?: string;
@@ -44,6 +45,7 @@ export const AvatarWithPresence: React.FC<Props> = observer(function AvatarWithP
 	user,
 	size,
 	speaking,
+	transmitting,
 	muted,
 	deafened,
 	className,
@@ -115,7 +117,13 @@ export const AvatarWithPresence: React.FC<Props> = observer(function AvatarWithP
 			avatarUrl={src}
 			hoverAvatarUrl={isAnimatedAvatarLoaded ? hoverSrc : undefined}
 			shouldPlayAnimated={wantsAnimatedAvatar && isAnimatedAvatarLoaded}
-			className={clsx(styles.container, speaking && styles.containerSpeaking, borderClassName, className)}
+			className={clsx(
+				styles.container,
+				speaking && styles.containerSpeaking,
+				!speaking && transmitting && styles.containerTransmitting,
+				borderClassName,
+				className,
+			)}
 			userTag={ariaLabel ?? user.displayName}
 			disableStatusTooltip
 			customStatusBadge={voiceBadge}
