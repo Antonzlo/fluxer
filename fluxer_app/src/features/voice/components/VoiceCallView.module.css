@@ -129,6 +129,21 @@
 	border-radius: var(--radius-lg);
 }
 
+.lkParticipantTile[data-stream-zoomed] video {
+	transform: translate(calc(var(--zoom-x) * 100%), calc(var(--zoom-y) * 100%)) scale(var(--zoom-scale));
+	transform-origin: center;
+	border-radius: 0;
+}
+
+.lkParticipantTile[data-stream-zoomed] {
+	overflow: hidden;
+	cursor: grab;
+}
+
+.lkParticipantTile[data-stream-zoomed][data-zoom-panning] {
+	cursor: grabbing;
+}
+
 .lkParticipantTile[data-source='screen_share'] {
 	background-color: var(--voice-surface-0);
 }
