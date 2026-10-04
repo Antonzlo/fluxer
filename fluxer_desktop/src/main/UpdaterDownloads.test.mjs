@@ -34,7 +34,7 @@ function loadUpdaterDownloads({channel = 'stable', platform = 'linux', arch = 'x
 		require: requireStub,
 		module,
 		exports: module.exports,
-		process: {platform, arch},
+		process: {platform, arch, env: {}},
 	});
 	vm.runInContext(transformedSource, context, {filename: sourcePath});
 	return module.exports;

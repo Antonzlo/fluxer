@@ -32,6 +32,7 @@ import {
 	type ManualDesktopFormat,
 	type ManualLatestFile,
 	type ManualLatestInfo,
+	NATIVE_UPDATES_ENABLED,
 	UPDATE_BASE_URL,
 	type UpdaterDownloadOption,
 } from '@electron/main/UpdaterDownloads';
@@ -803,7 +804,21 @@ function registerManualUpdater(
 	});
 }
 
+function registerDisabledUpdater(getMainWindow: () => BrowserWindow | null): void {
+	ipcMain.handle('updater-check', async (_e, context: UpdaterContext) => {
+		send(getMainWindow(), {type: 'not-available', context});
+	});
+	ipcMain.handle('updater-download', async () => {});
+	ipcMain.handle('updater-install', async () => {
+		throw new Error('Native updates are disabled in this build.');
+	});
+}
+
 export function registerUpdater(getMainWindow: () => BrowserWindow | null) {
+	if (!NATIVE_UPDATES_ENABLED) {
+		registerDisabledUpdater(getMainWindow);
+		return;
+	}
 	if (!app.isPackaged) {
 		registerManualUpdater(getMainWindow, 'unpackaged');
 		return;

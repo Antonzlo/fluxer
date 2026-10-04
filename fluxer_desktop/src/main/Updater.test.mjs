@@ -117,6 +117,7 @@ function loadUpdater({
 	arch = 'arm64',
 	velopack,
 	applyAttempt = null,
+	nativeUpdates = true,
 }) {
 	const events = [];
 	const handlers = new Map();
@@ -176,6 +177,7 @@ function loadUpdater({
 			arch,
 			execPath: execPath ?? (appDir ? join(appDir, 'fluxer-canary') : process.execPath),
 			env: {
+				...(nativeUpdates ? {FLUXER_NATIVE_UPDATES: '1'} : {}),
 				...(appImagePath ? {APPIMAGE: appImagePath} : {}),
 				...(appDir ? {APPDIR: appDir} : {}),
 			},
@@ -246,6 +248,19 @@ function types(events) {
 function stagingLeftovers(directory) {
 	return readdirSync(directory).filter((entry) => entry.startsWith('.fluxer-update-'));
 }
+
+describe('Updater disabled by default', () => {
+	test('never contacts the update feed and reports no update', async () => {
+		const install = createInstall();
+		const updater = loadUpdater({appImagePath: install.installedPath, appDir: install.mount, nativeUpdates: false});
+		const requestsBefore = appImageRequests;
+
+		await updater.check();
+
+		assert.deepEqual(types(updater.events), ['not-available']);
+		assert.equal(appImageRequests, requestsBefore);
+	});
+});
 
 describe('Updater AppImage lifecycle', () => {
 	test('downloads on check, reports the macOS lifecycle, and swaps in place', async () => {

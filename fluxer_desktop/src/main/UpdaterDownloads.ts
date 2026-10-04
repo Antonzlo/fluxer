@@ -18,6 +18,9 @@ function getDesktopDownloadArch(arch: NodeJS.Architecture): DesktopDownloadArch 
 
 const DESKTOP_DOWNLOAD_ARCH = getDesktopDownloadArch(process.arch);
 const PKGS_BASE_URL = 'https://pkgs.fluxer.com';
+// The update feed is upstream's package server, which would replace this fork's build with upstream's.
+// Native updates stay off unless explicitly opted in.
+export const NATIVE_UPDATES_ENABLED = process.env.FLUXER_NATIVE_UPDATES === '1';
 export const UPDATE_BASE_URL = `${PKGS_BASE_URL}/desktop/${BUILD_CHANNEL}/${process.platform}/${DESKTOP_DOWNLOAD_ARCH}`;
 export const DOWNLOAD_PAGE_URL =
 	BUILD_CHANNEL === 'canary' ? 'https://canary.fluxer.app/download' : 'https://fluxer.app/download';
