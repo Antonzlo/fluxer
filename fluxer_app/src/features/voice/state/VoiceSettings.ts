@@ -469,7 +469,7 @@ class VoiceSettings {
 	preferredVideoCodec: CodecPreference = 'auto';
 	preferredScreenShareCodec: CodecPreference = 'auto';
 	screenShareAv1OptIn = false;
-	screenShareHevcOptIn = false;
+	screenShareHevcOptIn = true;
 	screenShareHighFrameRates = false;
 	screenShareAv1OptOutMigratedV1 = false;
 	screenShareHevcOptOutMigratedV1 = false;
