@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-export const LOCAL_MIN_RMS = 0.0003;
 export const LOCAL_AUTO_MIN_RMS = 0.000003;
-const LOCAL_DEFAULT_RMS = 0.008;
 export const LOCAL_MAX_RMS = 0.04;
+const LOCAL_SLIDER_MIN_RMS = 0.001;
+const LOCAL_SLIDER_MAX_RMS = 0.064;
 const REMOTE_MIN_RMS = 0.002;
 const REMOTE_DEFAULT_RMS = 0.006;
 const REMOTE_MAX_RMS = 0.035;
@@ -30,11 +30,8 @@ function interpolateThreshold(slider: number, min: number, def: number, max: num
 }
 
 export function getLocalSpeakingThresholdRms(slider: number): number {
-	const value = clampSlider(slider);
-	if (value <= SLIDER_DEFAULT) {
-		return LOCAL_MIN_RMS * (LOCAL_DEFAULT_RMS / LOCAL_MIN_RMS) ** (value / SLIDER_DEFAULT);
-	}
-	return interpolateThreshold(value, LOCAL_MIN_RMS, LOCAL_DEFAULT_RMS, LOCAL_MAX_RMS);
+	const t = clampSlider(slider) / 100;
+	return LOCAL_SLIDER_MIN_RMS * (LOCAL_SLIDER_MAX_RMS / LOCAL_SLIDER_MIN_RMS) ** t;
 }
 
 export function getRemoteSpeakingThresholdRms(slider: number): number {
@@ -42,9 +39,8 @@ export function getRemoteSpeakingThresholdRms(slider: number): number {
 }
 
 export const __TEST__ = {
-	LOCAL_MIN_RMS,
-	LOCAL_DEFAULT_RMS,
-	LOCAL_MAX_RMS,
+	LOCAL_SLIDER_MIN_RMS,
+	LOCAL_SLIDER_MAX_RMS,
 	REMOTE_MIN_RMS,
 	REMOTE_DEFAULT_RMS,
 	REMOTE_MAX_RMS,

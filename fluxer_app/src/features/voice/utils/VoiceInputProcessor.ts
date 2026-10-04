@@ -15,6 +15,7 @@ import {
 	hasIdleDeepFilterNode,
 	reportVoiceInputLevel,
 } from '@app/features/voice/utils/noise_suppression/DeepFilter';
+import {getNoiseSuppressionTuningKey} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
 import NoiseSuppressionAvailability from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAvailability';
 import {
 	getNoiseSuppressionBackendDescriptor,
@@ -81,8 +82,16 @@ type SuppressionSlotKey = 'passthrough' | 'deep_filter' | NoiseSuppressionWorkle
 
 interface SuppressionSlot {
 	readonly key: SuppressionSlotKey;
+	readonly tuning: string;
 	readonly output: GainNode;
 	dispose(): void;
+}
+
+function readSlotTuning(key: SuppressionSlotKey): string {
+	return getNoiseSuppressionTuningKey(
+		key === 'passthrough' ? 'none' : key,
+		VoiceSettings.getNoiseSuppressionAdvancedSettings(),
+	);
 }
 
 function isAbortError(error: unknown): boolean {
@@ -210,8 +219,9 @@ export class VoiceInputGraph {
 				const config = this.resolveConfig();
 				this.applyParameters(config);
 				const key = this.resolveSlotKey(config.backend);
-				if (key === this.slot.key) continue;
-				const slot = this.reviveRetiringSlot(key) ?? (await this.buildSlot(key));
+				const tuning = readSlotTuning(key);
+				if (key === this.slot.key && tuning === this.slot.tuning) continue;
+				const slot = this.reviveRetiringSlot(key, tuning) ?? (await this.buildSlot(key, tuning));
 				if (!slot) continue;
 				if (this.disposed) {
 					slot.dispose();
@@ -311,6 +321,7 @@ export class VoiceInputGraph {
 		this.inputMix.connect(output);
 		return {
 			key: 'passthrough',
+			tuning: '',
 			output,
 			dispose: () => {
 				disconnectEdge(this.inputMix, output);
@@ -319,10 +330,10 @@ export class VoiceInputGraph {
 		};
 	}
 
-	private async buildSlot(key: SuppressionSlotKey): Promise<SuppressionSlot | null> {
+	private async buildSlot(key: SuppressionSlotKey, tuning: string): Promise<SuppressionSlot | null> {
 		if (key === 'passthrough') return this.createPassthroughSlot(0);
 		try {
-			return key === 'deep_filter' ? await this.buildDeepFilterSlot() : await this.buildWorkletSlot(key);
+			return key === 'deep_filter' ? await this.buildDeepFilterSlot(tuning) : await this.buildWorkletSlot(key, tuning);
 		} catch (error) {
 			if (!this.disposed && !isAbortError(error)) {
 				logger.warn('Noise suppression could not start; keeping the current voice input chain', {backend: key, error});
@@ -343,7 +354,7 @@ export class VoiceInputGraph {
 		}
 	}
 
-	private async buildDeepFilterSlot(): Promise<SuppressionSlot> {
+	private async buildDeepFilterSlot(tuning: string): Promise<SuppressionSlot> {
 		const signal = this.buildController.signal;
 		if (this.source && !hasIdleDeepFilterNode(this.context)) await this.waitForSpeechPause(signal);
 		const lease = await acquireDeepFilterNode(this.context, signal, () => void this.configure());
@@ -363,10 +374,10 @@ export class VoiceInputGraph {
 			throw new DOMException('Voice input graph disposed', 'AbortError');
 		}
 		if (lease.builtOverLiveSource) this.recreateSource();
-		return {key: 'deep_filter', output, dispose};
+		return {key: 'deep_filter', tuning, output, dispose};
 	}
 
-	private async buildWorkletSlot(backend: NoiseSuppressionWorkletBackend): Promise<SuppressionSlot> {
+	private async buildWorkletSlot(backend: NoiseSuppressionWorkletBackend, tuning: string): Promise<SuppressionSlot> {
 		const worklet = await createNoiseSuppressionWorkletNode(this.context, backend, {
 			signal: this.buildController.signal,
 			onRuntimeFailure: (error) => {
@@ -389,6 +400,7 @@ export class VoiceInputGraph {
 		worklet.node.connect(output);
 		return {
 			key: backend,
+			tuning,
 			output,
 			dispose: () => {
 				disconnectEdge(this.inputMix, worklet.node);
@@ -419,9 +431,9 @@ export class VoiceInputGraph {
 		);
 	}
 
-	private reviveRetiringSlot(key: SuppressionSlotKey): SuppressionSlot | null {
+	private reviveRetiringSlot(key: SuppressionSlotKey, tuning: string): SuppressionSlot | null {
 		for (const [slot, timer] of this.retiringSlots) {
-			if (slot.key !== key) continue;
+			if (slot.key !== key || slot.tuning !== tuning) continue;
 			clearTimeout(timer);
 			this.retiringSlots.delete(slot);
 			return slot;

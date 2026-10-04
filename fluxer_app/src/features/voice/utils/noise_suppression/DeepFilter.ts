@@ -4,7 +4,7 @@ import {Logger} from '@app/features/platform/utils/AppLogger';
 import {acquireIdleVoiceInputContext, isVoiceInputSourceLive} from '@app/features/voice/engine/VoiceInputAudioContext';
 import VoiceSettings from '@app/features/voice/state/VoiceSettings';
 import {
-	formatNoiseSuppressionAdvancedSignature,
+	getNoiseSuppressionTuningKey,
 	type NoiseSuppressionAdvancedSettings,
 } from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
 import NoiseSuppressionAvailability, {
@@ -494,7 +494,7 @@ function createPoolEntry(context: AudioContext, pool: Set<DeepFilterPoolEntry>):
 	const advanced = VoiceSettings.getNoiseSuppressionAdvancedSettings();
 	const entry: DeepFilterPoolEntry = {
 		build: createDeepFilterNode(context, advanced),
-		tuning: formatNoiseSuppressionAdvancedSignature(advanced),
+		tuning: getNoiseSuppressionTuningKey('deep_filter', advanced),
 		stopWatchingContext: () => context.removeEventListener('statechange', onStateChange),
 		holder: null,
 		idleTimer: undefined,
@@ -519,7 +519,7 @@ function createPoolEntry(context: AudioContext, pool: Set<DeepFilterPoolEntry>):
 function releasePoolEntry(pool: Set<DeepFilterPoolEntry>, entry: DeepFilterPoolEntry, token: symbol): void {
 	if (entry.holder !== token) return;
 	entry.holder = null;
-	if (entry.faulted) {
+	if (entry.faulted || entry.tuning !== readCurrentTuning()) {
 		disposePoolEntry(pool, entry);
 		return;
 	}
@@ -527,7 +527,7 @@ function releasePoolEntry(pool: Set<DeepFilterPoolEntry>, entry: DeepFilterPoolE
 }
 
 function readCurrentTuning(): string {
-	return formatNoiseSuppressionAdvancedSignature(VoiceSettings.getNoiseSuppressionAdvancedSettings());
+	return getNoiseSuppressionTuningKey('deep_filter', VoiceSettings.getNoiseSuppressionAdvancedSettings());
 }
 
 function isReusableIdleEntry(entry: DeepFilterPoolEntry, tuning: string): boolean {

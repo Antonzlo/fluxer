@@ -15,7 +15,6 @@ import {
 } from '@app/features/voice/engine/VoiceInputAudioContext';
 import VoiceSettings from '@app/features/voice/state/VoiceSettings';
 import {beginMicrophoneSession} from '@app/features/voice/utils/noise_suppression/DeepFilter';
-import {formatNoiseSuppressionAdvancedSignature} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
 import NoiseSuppressionAvailability from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAvailability';
 import type {VoiceNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
 import {readRequestedNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionRuntime';
@@ -50,6 +49,8 @@ function readEffectiveNoiseSuppressionBackend(): VoiceNoiseSuppressionBackend {
 	return NoiseSuppressionAvailability.resolveEffectiveBackend(readRequestedNoiseSuppressionBackend());
 }
 
+const GATE_LEVEL_STALE_MS = 1000;
+const MARKER_MIN_LEVEL = 0.01;
 const METER_MIN_DB = -60;
 const METER_MAX_DB = 0;
 
@@ -68,7 +69,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 	const [level, setLevel] = useState(0);
 	const [peakLevel, setPeakLevel] = useState(0);
 	const [gateMarker, setGateMarker] = useState<number | null>(null);
-	const gateThresholdRmsRef = useRef<number | null>(null);
+	const gateThresholdRef = useRef<{rms: number; at: number} | null>(null);
 	const inputLeaseRef = useRef<VoiceInputContextLease | null>(null);
 	const graphRef = useRef<MicTestAudioGraph | null>(null);
 	const playbackDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
@@ -86,9 +87,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 		NoiseSuppressionAvailability.subscribe,
 		readEffectiveNoiseSuppressionBackend,
 	);
-	const noiseSuppressionTuning = formatNoiseSuppressionAdvancedSignature(
-		VoiceSettings.getNoiseSuppressionAdvancedSettings(),
-	);
+	const noiseSuppressionTuning = JSON.stringify(VoiceSettings.getNoiseSuppressionAdvancedSettings());
 	const vadThreshold = VoiceSettings.getVadThreshold();
 	const vadAutoSensitivity = VoiceSettings.getVadAutoSensitivity();
 	const transmitMode = Keybind.transmitMode;
@@ -102,7 +101,6 @@ export const useMicTest = (settings: MicTestSettings) => {
 				voiceProcessingMode: settings.voiceProcessingMode,
 				stereoMicrophone: settings.stereoMicrophone,
 				noiseSuppressionBackend,
-				noiseSuppressionTuning,
 			}),
 		[
 			settings.autoGainControl,
@@ -112,7 +110,6 @@ export const useMicTest = (settings: MicTestSettings) => {
 			settings.stereoMicrophone,
 			settings.voiceProcessingMode,
 			noiseSuppressionBackend,
-			noiseSuppressionTuning,
 		],
 	);
 	const updateLevel = useCallback(() => {
@@ -128,14 +125,12 @@ export const useMicTest = (settings: MicTestSettings) => {
 		}
 		const rms = Math.sqrt(sumOfSquares / timeDomainDataRef.current.length);
 		const normalized = rmsToMeterLevel(rms);
-		const thresholdRms = gateThresholdRmsRef.current;
-		setGateMarker(
-			thresholdRms === null
-				? null
-				: Math.round(
-						rmsToMeterLevel(thresholdRms * inputVoiceVolumePercentToGain(VoiceSettings.getInputVolume())) * 100,
-					) / 100,
-		);
+		const gate = gateThresholdRef.current;
+		const markerLevel =
+			gate && performance.now() - gate.at < GATE_LEVEL_STALE_MS
+				? rmsToMeterLevel(gate.rms * inputVoiceVolumePercentToGain(VoiceSettings.getInputVolume()))
+				: 0;
+		setGateMarker(markerLevel > MARKER_MIN_LEVEL ? Math.round(markerLevel * 100) / 100 : null);
 		const nextPeak = Math.max(normalized, Math.max(0, peakLevelRef.current - 0.006));
 		peakLevelRef.current = nextPeak;
 		setLevel(normalized);
@@ -174,7 +169,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 		inputLeaseRef.current = null;
 		timeDomainDataRef.current = null;
 		peakLevelRef.current = 0;
-		gateThresholdRmsRef.current = null;
+		gateThresholdRef.current = null;
 		setGateMarker(null);
 		setIsTesting(false);
 		setLevel(0);
@@ -271,7 +266,9 @@ export const useMicTest = (settings: MicTestSettings) => {
 				playbackTarget,
 				playbackDelaySeconds: MIC_TEST_MONITOR_DELAY_SECONDS,
 				onLevel: (gateLevel) => {
-					gateThresholdRmsRef.current = isVoiceActivityGateEnabled() ? gateLevel.thresholdRms : null;
+					gateThresholdRef.current = isVoiceActivityGateEnabled()
+						? {rms: gateLevel.thresholdRms, at: performance.now()}
+						: null;
 				},
 			});
 			timeDomainDataRef.current = new Float32Array(graphRef.current.analyser.fftSize);
@@ -333,7 +330,15 @@ export const useMicTest = (settings: MicTestSettings) => {
 			void graphRef.current.configure();
 			graphRef.current.outputGain.gain.value = boostedVoiceVolumePercentToTrackVolume(settings.outputVolume);
 		}
-	}, [isTesting, settings.inputVolume, settings.outputVolume, vadThreshold, vadAutoSensitivity, transmitMode]);
+	}, [
+		isTesting,
+		settings.inputVolume,
+		settings.outputVolume,
+		vadThreshold,
+		vadAutoSensitivity,
+		transmitMode,
+		noiseSuppressionTuning,
+	]);
 	useEffect(() => {
 		if (!isTesting) {
 			activeCaptureSignatureRef.current = captureSignature;

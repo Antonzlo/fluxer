@@ -60,6 +60,7 @@ export function AudioLevelMeter({
 			{marker != null && (
 				<span
 					className={styles.marker}
+					aria-hidden="true"
 					style={{left: `${Math.min(1, Math.max(0, marker)) * 100}%`}}
 					data-flx="user.audio-level-meter.marker"
 				/>

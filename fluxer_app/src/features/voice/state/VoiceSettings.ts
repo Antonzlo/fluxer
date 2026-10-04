@@ -11,6 +11,7 @@ import type {
 } from '@app/features/voice/utils/CodecCapabilityDetector';
 import {
 	clampNoiseSuppressionAdvancedSetting,
+	clampNoiseSuppressionAdvancedSettings,
 	NOISE_SUPPRESSION_ADVANCED_DEFAULTS,
 	type NoiseSuppressionAdvancedSettings,
 } from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
@@ -1014,17 +1015,19 @@ class VoiceSettings {
 	}
 
 	getRemoteSpeakingThreshold(): number {
-		return this.remoteSpeakingThreshold;
+		return Number.isFinite(this.remoteSpeakingThreshold)
+			? Math.max(0, Math.min(100, this.remoteSpeakingThreshold))
+			: 50;
 	}
 
 	getNoiseSuppressionAdvancedSettings(): NoiseSuppressionAdvancedSettings {
-		return {
+		return clampNoiseSuppressionAdvancedSettings({
 			deepFilterAttenLimDb: this.deepFilterAttenLimDb,
 			deepFilterHighPassHz: this.deepFilterHighPassHz,
 			noiseGateOpenDb: this.noiseGateOpenDb,
 			noiseGateCloseDb: this.noiseGateCloseDb,
 			noiseGateHoldMs: this.noiseGateHoldMs,
-		};
+		});
 	}
 
 	getLinuxAudioCaptureWorkaround(): boolean {

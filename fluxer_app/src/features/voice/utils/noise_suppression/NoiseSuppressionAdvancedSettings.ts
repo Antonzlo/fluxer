@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import type {VoiceNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
+
 export interface NoiseSuppressionAdvancedSettings {
 	deepFilterAttenLimDb: number;
 	deepFilterHighPassHz: number;
@@ -34,12 +36,28 @@ export function clampNoiseSuppressionAdvancedSetting(key: NoiseSuppressionAdvanc
 	return Math.max(min, Math.min(max, value));
 }
 
-export function formatNoiseSuppressionAdvancedSignature(settings: NoiseSuppressionAdvancedSettings): string {
-	return [
-		settings.deepFilterAttenLimDb,
-		settings.deepFilterHighPassHz,
-		settings.noiseGateOpenDb,
-		settings.noiseGateCloseDb,
-		settings.noiseGateHoldMs,
-	].join('|');
+export function clampNoiseSuppressionAdvancedSettings(
+	settings: Partial<Record<NoiseSuppressionAdvancedSettingKey, unknown>>,
+): NoiseSuppressionAdvancedSettings {
+	return {
+		deepFilterAttenLimDb: clampNoiseSuppressionAdvancedSetting('deepFilterAttenLimDb', settings.deepFilterAttenLimDb),
+		deepFilterHighPassHz: clampNoiseSuppressionAdvancedSetting('deepFilterHighPassHz', settings.deepFilterHighPassHz),
+		noiseGateOpenDb: clampNoiseSuppressionAdvancedSetting('noiseGateOpenDb', settings.noiseGateOpenDb),
+		noiseGateCloseDb: clampNoiseSuppressionAdvancedSetting('noiseGateCloseDb', settings.noiseGateCloseDb),
+		noiseGateHoldMs: clampNoiseSuppressionAdvancedSetting('noiseGateHoldMs', settings.noiseGateHoldMs),
+	};
+}
+
+export function getNoiseSuppressionTuningKey(
+	backend: VoiceNoiseSuppressionBackend,
+	settings: NoiseSuppressionAdvancedSettings,
+): string {
+	switch (backend) {
+		case 'deep_filter':
+			return `${settings.deepFilterAttenLimDb}|${settings.deepFilterHighPassHz}`;
+		case 'gate':
+			return `${settings.noiseGateOpenDb}|${settings.noiseGateCloseDb}|${settings.noiseGateHoldMs}`;
+		default:
+			return '';
+	}
 }

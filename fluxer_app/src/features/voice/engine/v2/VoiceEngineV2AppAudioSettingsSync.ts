@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import VoiceDevicePermissionState from '@app/features/voice/engine/VoiceDevicePermissionState';
 import VoiceSettings from '@app/features/voice/state/VoiceSettings';
+import {getNoiseSuppressionTuningKey} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
 import type {VoiceNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
 import {isVoiceActivityGateEnabled} from '@app/features/voice/utils/VoiceInputProcessor';
 import {
@@ -27,6 +28,7 @@ export interface VoiceEngineV2AppAudioSettingsSnapshot {
 	readonly deepFilter: boolean;
 	readonly contentHint: '' | 'speech' | 'music';
 	readonly noiseSuppressionBackend: VoiceNoiseSuppressionBackend;
+	readonly noiseSuppressionTuning: string;
 	readonly stereoCapture: boolean;
 }
 
@@ -53,6 +55,7 @@ function assertAudioSettingsSnapshot(snapshot: VoiceEngineV2AppAudioSettingsSnap
 	assert.equal(typeof snapshot.autoGainControl, 'boolean', `${name}.autoGainControl must be a boolean`);
 	assert.equal(typeof snapshot.deepFilter, 'boolean', `${name}.deepFilter must be a boolean`);
 	assert.equal(typeof snapshot.noiseSuppressionBackend, 'string', `${name}.noiseSuppressionBackend must be a string`);
+	assert.equal(typeof snapshot.noiseSuppressionTuning, 'string', `${name}.noiseSuppressionTuning must be a string`);
 	assert.equal(typeof snapshot.stereoCapture, 'boolean', `${name}.stereoCapture must be a boolean`);
 }
 
@@ -75,6 +78,10 @@ export function createVoiceEngineV2AppAudioSettingsSnapshot(): VoiceEngineV2AppA
 		deepFilter: profile.deepFilter,
 		contentHint: profile.contentHint,
 		noiseSuppressionBackend: profile.noiseSuppressionBackend,
+		noiseSuppressionTuning: getNoiseSuppressionTuningKey(
+			profile.noiseSuppressionBackend,
+			VoiceSettings.getNoiseSuppressionAdvancedSettings(),
+		),
 		stereoCapture: profile.stereoCapture,
 	};
 }
@@ -109,6 +116,7 @@ export function hasVoiceEngineV2InputProcessorSettingsChanged(
 	assertAudioSettingsSnapshot(previous, 'previous');
 	assertAudioSettingsSnapshot(current, 'current');
 	if (previous.noiseSuppressionBackend !== current.noiseSuppressionBackend) return true;
+	if (previous.noiseSuppressionTuning !== current.noiseSuppressionTuning) return true;
 	if (previous.voiceActivityGate !== current.voiceActivityGate) return true;
 	if (previous.vadAutoSensitivity !== current.vadAutoSensitivity) return true;
 	if (previous.vadThreshold !== current.vadThreshold) return true;
