@@ -458,6 +458,8 @@ export interface ElectronAPI {
 	setTrayRuntimeState?(state: Partial<TrayRuntimeStatePayload>): void;
 	acquireStreamingPriority?(): void;
 	releaseStreamingPriority?(): void;
+	acquireVoicePriority?(): void;
+	releaseVoicePriority?(): void;
 	resetStreamingPriority?(): void;
 	getStreamingPriorityDiagnostics?(): Promise<StreamingPriorityDiagnostics>;
 	onTrayAction?(callback: (payload: TrayActionPayload) => void): () => void;

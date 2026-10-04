@@ -589,6 +589,12 @@ const api: ElectronAPI = {
 	releaseStreamingPriority: (): void => {
 		ipcRenderer.send('streaming-priority-release');
 	},
+	acquireVoicePriority: (): void => {
+		ipcRenderer.send('voice-priority-acquire');
+	},
+	releaseVoicePriority: (): void => {
+		ipcRenderer.send('voice-priority-release');
+	},
 	resetStreamingPriority: (): void => {
 		ipcRenderer.send('streaming-priority-reset');
 	},
