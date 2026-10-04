@@ -32,6 +32,7 @@ import {drainPendingDisplayMediaRequests, registerDisplayMediaRequestHandler} fr
 import {shouldDisableV8CodeCache} from '@electron/main/LaunchOptions';
 import {t} from '@electron/main/MainI18n';
 import {openExternalDeduped} from '@electron/main/OpenExternal';
+import {attachServerUnavailableOverlay} from '@electron/main/ServerUnavailableOverlay';
 import {registerSpellcheck} from '@electron/main/Spellcheck';
 import {resetStreamingPriority} from '@electron/main/StreamingPriority';
 import {attachServerUrlLink} from '@electron/main/ServerUrlLink';
@@ -1005,6 +1006,15 @@ export function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 		},
 	});
 	attachServerUrlLink(webContents);
+	attachServerUnavailableOverlay(webContents, {
+		getLabels: () => ({
+			title: t('desktop.appLoad.failedTitle'),
+			message: t('desktop.appLoad.failedMessage'),
+			retry: t('desktop.appLoad.retry'),
+		}),
+		isTrustedUrl: isTrustedOrigin,
+		logger,
+	});
 	webContents.on('did-finish-load', () => {
 		rendererGoneReloaded = false;
 		mainWindowRendererGone = false;
