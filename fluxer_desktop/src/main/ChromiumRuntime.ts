@@ -87,6 +87,7 @@ export const BASE_DISABLED_CHROMIUM_FEATURES = [
 	'UseEcoQoSForBackgroundProcess',
 	'IntensiveWakeUpThrottling',
 	'AllowAggressiveThrottlingWithWebSocket',
+	'CalculateNativeWinOcclusion',
 ];
 
 interface RuntimeCacheState {
