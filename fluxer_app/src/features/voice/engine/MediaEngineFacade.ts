@@ -1734,6 +1734,9 @@ class MediaEngineFacade extends Store {
 					}
 				: voiceState;
 		voiceEngineV2AppVoiceStateAdapter.handleGatewayVoiceStateUpdate(guildId, projectedVoiceState);
+		if (!isLocalConnection) {
+			this.playRemoteStreamToggleSound(previousConnectionState, voiceState);
+		}
 		if (!isLocalConnection && voiceEngineV2AppConnectionHostAdapter.connected && voiceState.channel_id) {
 			if (!areOrderedStringArraysEqual(previousViewerStreamKeys, incomingViewerStreamKeys)) {
 				this.playSpectatorSounds(previousViewerStreamKeys, incomingViewerStreamKeys);
@@ -2370,6 +2373,19 @@ class MediaEngineFacade extends Store {
 			clearInterval(this.afkIntervalId);
 			this.afkIntervalId = null;
 		}
+	}
+
+	private playRemoteStreamToggleSound(previous: NormalizedVoiceState | null, next: VoiceState): void {
+		if (!previous || !next.channel_id) return;
+		if (!voiceEngineV2AppConnectionHostAdapter.connected) return;
+		if (next.channel_id !== voiceEngineV2AppConnectionHostAdapter.channelId) return;
+		if (previous.channel_id !== next.channel_id) return;
+		if (VoiceRegionTeleport.shouldSuppressRejoinSounds()) return;
+		if (LocalVoiceState.getSelfDeaf()) return;
+		const wasStreaming = previous.self_stream === true;
+		const isStreaming = next.self_stream === true;
+		if (wasStreaming === isStreaming) return;
+		SoundCommands.playSound(isStreaming ? SoundType.ScreenShareStart : SoundType.ScreenShareStop);
 	}
 
 	private playSpectatorSounds(oldStreamKeys: ReadonlyArray<string>, newStreamKeys: ReadonlyArray<string>): void {
