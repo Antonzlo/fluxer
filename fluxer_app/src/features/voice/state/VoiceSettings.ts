@@ -3,6 +3,7 @@
 import AppStorage from '@app/features/platform/state/PersistentStorage';
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import {makePersistent} from '@app/features/platform/utils/MobXPersistence';
+import {applyRemoteSpeakingThresholdSeedMigrationV1} from '@app/features/voice/state/RemoteSpeakingThresholdMigration';
 import type {
 	CodecPreference,
 	ScreenShareContentHint,
@@ -486,6 +487,7 @@ class VoiceSettings {
 	screenShareAv1OptOutMigratedV1 = false;
 	screenShareHevcOptOutMigratedV1 = false;
 	deepFilterDefaultRetiredMigratedV1 = false;
+	remoteSpeakingThresholdSeededV1 = false;
 	screenShareContentHintPrefV2: ScreenShareContentHint = DEFAULT_SCREEN_SHARE_CONTENT_HINT;
 	screenShareContentHintDefaultMigratedV1 = false;
 	screenShareSoftwareQualityRetiredV1 = false;
@@ -619,6 +621,7 @@ class VoiceSettings {
 			changed = applyScreenShareBackupCodecModeRetiredMigrationV1(parsed) || changed;
 			changed = applyLegacyNoiseSuppressionNoneMigrationV1(parsed) || changed;
 			changed = applyDeepFilterDefaultRetiredMigrationV1(parsed) || changed;
+			changed = applyRemoteSpeakingThresholdSeedMigrationV1(parsed) || changed;
 			if (changed) {
 				AppStorage.setItem('VoiceSettings', JSON.stringify(parsed));
 			}
@@ -627,6 +630,7 @@ class VoiceSettings {
 			this.screenShareHevcOptOutMigratedV1 = parsed.screenShareHevcOptOutMigratedV1 === true;
 			this.manualAudioSourcesOptOutResetMigratedV1 = parsed.manualAudioSourcesOptOutResetMigratedV1 === true;
 			this.deepFilterDefaultRetiredMigratedV1 = parsed.deepFilterDefaultRetiredMigratedV1 === true;
+			this.remoteSpeakingThresholdSeededV1 = parsed.remoteSpeakingThresholdSeededV1 === true;
 		} catch (error) {
 			logger.warn('Failed to migrate persisted voice settings:', error);
 		}
@@ -682,6 +686,7 @@ class VoiceSettings {
 			'screenShareAv1OptOutMigratedV1',
 			'screenShareHevcOptOutMigratedV1',
 			'deepFilterDefaultRetiredMigratedV1',
+			'remoteSpeakingThresholdSeededV1',
 			'screenShareContentHintPrefV2',
 			'screenShareContentHintDefaultMigratedV1',
 			'screenShareSoftwareQualityRetiredV1',

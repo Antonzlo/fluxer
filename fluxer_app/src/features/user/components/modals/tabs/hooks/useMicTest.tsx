@@ -91,6 +91,8 @@ export const useMicTest = (settings: MicTestSettings) => {
 	const vadThreshold = VoiceSettings.getVadThreshold();
 	const vadAutoSensitivity = VoiceSettings.getVadAutoSensitivity();
 	const transmitMode = Keybind.transmitMode;
+	const gateEnabled = isVoiceActivityGateEnabled();
+	const gateEnabledRef = useRef(gateEnabled);
 	const captureSignature = useMemo(
 		() =>
 			JSON.stringify({
@@ -112,6 +114,9 @@ export const useMicTest = (settings: MicTestSettings) => {
 			noiseSuppressionBackend,
 		],
 	);
+	useEffect(() => {
+		gateEnabledRef.current = gateEnabled;
+	}, [gateEnabled]);
 	const updateLevel = useCallback(() => {
 		if (!graphRef.current || !timeDomainDataRef.current) {
 			animationFrameRef.current = requestAnimationFrame(updateLevel);
@@ -266,7 +271,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 				playbackTarget,
 				playbackDelaySeconds: MIC_TEST_MONITOR_DELAY_SECONDS,
 				onLevel: (gateLevel) => {
-					gateThresholdRef.current = isVoiceActivityGateEnabled()
+					gateThresholdRef.current = gateEnabledRef.current
 						? {rms: gateLevel.thresholdRms, at: performance.now()}
 						: null;
 				},

@@ -20,7 +20,7 @@ export const NOISE_SUPPRESSION_ADVANCED_DEFAULTS: Readonly<NoiseSuppressionAdvan
 	noiseGateHoldMs: 180,
 };
 
-const NOISE_SUPPRESSION_ADVANCED_RANGES: Readonly<
+export const NOISE_SUPPRESSION_ADVANCED_RANGES: Readonly<
 	Record<NoiseSuppressionAdvancedSettingKey, {min: number; max: number}>
 > = {
 	deepFilterAttenLimDb: {min: 0, max: 100},

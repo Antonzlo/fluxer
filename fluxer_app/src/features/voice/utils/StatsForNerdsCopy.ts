@@ -283,6 +283,8 @@ async function collectVoiceSettingsMetadata(): Promise<Record<string, unknown>> 
 		vadThreshold: VoiceSettings.getVadThreshold(),
 		vadAutoSensitivity: VoiceSettings.getVadAutoSensitivity(),
 		vadEnhanced: VoiceSettings.getVadEnhanced(),
+		remoteSpeakingThreshold: VoiceSettings.getRemoteSpeakingThreshold(),
+		noiseSuppressionAdvanced: VoiceSettings.getNoiseSuppressionAdvancedSettings(),
 		cameraResolution: VoiceSettings.getCameraResolution(),
 		screenshareResolution: VoiceSettings.getScreenshareResolution(),
 		videoFrameRate: VoiceSettings.getVideoFrameRate(),
