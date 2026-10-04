@@ -44,6 +44,7 @@ import {StreamInfoPill, type StreamInfoPillQuality} from '@app/features/voice/co
 import {getStreamKey} from '@app/features/voice/components/StreamKeys';
 import {StreamSpectatorsPopout} from '@app/features/voice/components/StreamSpectatorsPopout';
 import {StreamWatchHoverCard} from '@app/features/voice/components/StreamWatchHoverCard';
+import {StreamZoomPanel} from '@app/features/voice/components/StreamZoomPanel';
 import {useScreenShareWatchFailure} from '@app/features/voice/components/useScreenShareWatchFailure';
 import {useStreamPreview} from '@app/features/voice/components/useStreamPreview';
 import {useStreamSpectators} from '@app/features/voice/components/useStreamSpectators';
@@ -147,6 +148,7 @@ import {
 } from '@app/features/voice/utils/VoiceMessageDescriptors';
 import {parseVoiceParticipantIdentity} from '@app/features/voice/utils/VoiceParticipantIdentity';
 import {isParticipantVoicePermissionMuted} from '@app/features/voice/utils/VoicePermissionUtils';
+import {useStreamZoom} from '@app/features/voice/hooks/useStreamZoom';
 import {VOICE_VOLUME_MAX_SLIDER_VOLUME} from '@app/features/voice/utils/VoiceVolumeUtils';
 import {DEFAULT_ACCENT_COLOR} from '@fluxer/constants/src/AppConstants';
 import {Permissions} from '@fluxer/constants/src/ChannelConstants';
@@ -882,6 +884,19 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 	const hasVisibleMediaTile =
 		!isFocusedPlaceholderTile && isTrackReference(trackRef) && hasVideo && !shouldHideOwnScreenShareVideo;
 	const isAvatarOnlyTile = !hasVisibleMediaTile && !isScreenShare;
+	const streamZoomEnabled = hasVisibleMediaTile && isScreenShare && isFocusPresentationTile;
+	const streamZoom = useStreamZoom({enabled: streamZoomEnabled, tileRef});
+	const isStreamZoomed = streamZoomEnabled && streamZoom.zoom.scale > 1;
+	const streamZoomStyle = useMemo(
+		() =>
+			({
+				...elementProps.style,
+				'--zoom-scale': streamZoom.zoom.scale,
+				'--zoom-x': -(streamZoom.zoom.centerX - 0.5) * streamZoom.zoom.scale,
+				'--zoom-y': -(streamZoom.zoom.centerY - 0.5) * streamZoom.zoom.scale,
+			}) as React.CSSProperties,
+		[elementProps.style, streamZoom.zoom],
+	);
 	const shouldShowTileSpeakingIndicator =
 		!isFocusedPlaceholderTile && isActuallySpeaking && !isScreenShare && !isAvatarOnlyTile;
 	const isActiveLocalScreenShareConnection =
@@ -1039,6 +1054,8 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 						!isInsideTilePopout && styles.cursorPointer,
 						tileContextMenuOpen && voiceCallStyles.tileContextMenuActive,
 					)}
+					style={isStreamZoomed ? streamZoomStyle : elementProps.style}
+					data-stream-zoomed={isStreamZoomed || undefined}
 					data-speaking={shouldShowTileSpeakingIndicator}
 					data-video-muted={isFocusedPlaceholderTile || !hasVideo || (shouldHideOwnScreenShareVideo && !frozenFrameUrl)}
 					data-source={sourceAttr}
@@ -1055,6 +1072,16 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 					tabIndex={isInsideTilePopout ? undefined : 0}
 				>
 					{mediaNode}
+					{isStreamZoomed && (
+						<StreamZoomPanel
+							zoom={streamZoom.zoom}
+							sourceVideoRef={videoRef}
+							onScaleChange={streamZoom.setScale}
+							onCenterChange={streamZoom.setCenter}
+							onZoomIn={streamZoom.zoomIn}
+							onZoomOut={streamZoom.zoomOut}
+						/>
+					)}
 					{isScreenShareBuffering &&
 						!isFocusedPlaceholderTile &&
 						screenShareBufferingPresentation === 'last-frame' &&
