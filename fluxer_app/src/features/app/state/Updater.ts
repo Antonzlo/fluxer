@@ -57,12 +57,7 @@ const MANUAL_DOWNLOAD_REFRESH_TIMEOUT_MS = 5 * 1000;
 const WEB_CHECK_TIMEOUT_MS = 15 * 1000;
 const VERSION_ENDPOINT = '/version.json';
 const CURRENT_BUILD_VERSION = Config.PUBLIC_BUILD_VERSION ?? null;
-const ALLOWED_WEB_UPDATE_HOSTS = new Set([
-	'web.fluxer.app',
-	'web.canary.fluxer.app',
-	'fluxer.com',
-	'canary.fluxer.com',
-]);
+const DEV_BUILD_VERSION = 'dev';
 
 async function dropCachedAppShell(): Promise<void> {
 	const browserCaches = getProtectedCacheStorage();
@@ -538,7 +533,7 @@ class Updater {
 		available: boolean;
 		version: string | null;
 	} | null> {
-		if (!ALLOWED_WEB_UPDATE_HOSTS.has(window.location.host)) {
+		if (!CURRENT_BUILD_VERSION || CURRENT_BUILD_VERSION === DEV_BUILD_VERSION) {
 			return {available: false, version: null};
 		}
 		try {
