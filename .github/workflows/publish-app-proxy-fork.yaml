@@ -66,5 +66,6 @@ jobs:
             BUILD_VERSION=${{ steps.meta.outputs.sha }}
             SOURCE_SHA=${{ github.sha }}
             SOURCE_DATE=${{ steps.meta.outputs.date }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            PRECOMPRESS_BROTLI_QUALITY=9
+          # No layer cache: exporting it (mode=max) took ~6.5 min per run, far
+          # more than the ~2 min of toolchain/install layers it saved.

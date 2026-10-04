@@ -88,6 +88,8 @@ COPY --from=app-build /usr/src/app/fluxer_app/dist /dist
 FROM alpine:3.24 AS app-assets
 ARG BUNDLE_LOCAL_ASSETS=true
 ARG PUBLIC_ASSET_BASE_URL=""
+ARG PRECOMPRESS_BROTLI_QUALITY=11
+ENV PRECOMPRESS_BROTLI_QUALITY=${PRECOMPRESS_BROTLI_QUALITY}
 COPY fluxer_app_proxy/scripts/precompress_assets.sh /usr/local/bin/precompress_assets.sh
 RUN apk add --no-cache brotli
 RUN --mount=type=bind,from=app-dist,source=/dist,target=/dist \
