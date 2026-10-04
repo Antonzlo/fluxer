@@ -102,11 +102,12 @@ export const StreamWatchHoverPopout = observer(function StreamWatchHoverPopout({
 	const hoverDelay = useMemo(() => ({open: 200, close: 150}), []);
 	const hoverSafePolygon = useMemo(() => safePolygon({buffer: 4, requireIntent: false}), []);
 	const hoverOptions = useMemo(
-		() => ({delay: hoverDelay, handleClose: hoverSafePolygon}),
-		[hoverDelay, hoverSafePolygon],
+		() => ({enabled: isPopoutEnabled, delay: hoverDelay, handleClose: hoverSafePolygon}),
+		[isPopoutEnabled, hoverDelay, hoverSafePolygon],
 	);
+	const focusOptions = useMemo(() => ({enabled: isPopoutEnabled}), [isPopoutEnabled]);
 	const hover = useHover(context, hoverOptions);
-	const focus = useFocus(context);
+	const focus = useFocus(context, focusOptions);
 	const interactions = useMemo(() => [hover, focus], [focus, hover]);
 	const {getReferenceProps, getFloatingProps} = useInteractions(interactions);
 	const canFetchStreamPreview = canViewStreamPreview({
@@ -336,7 +337,9 @@ export const StreamWatchHoverPopout = observer(function StreamWatchHoverPopout({
 		[isWatching, streamParticipantIdentity, watchDisabled, handleWatch, guildId, channelId],
 	);
 	if (!isPopoutEnabled) {
-		return cloneElement(child, fallbackProps);
+		// Keep the reference ref attached while disabled: a wrapper such as FocusRing merges refs through a stable
+		// callback, so a ref added only once streaming starts would never be attached to the already-mounted row.
+		return cloneElement(child, {...fallbackProps, ref: mergedRef});
 	}
 	return (
 		<>
