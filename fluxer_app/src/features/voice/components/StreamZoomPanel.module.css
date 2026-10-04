@@ -3,7 +3,7 @@
 	left: 0.75rem;
 	bottom: 0.75rem;
 	z-index: 20;
-	width: min(18rem, calc(100% - 1.5rem));
+	width: min(13rem, calc(100% - 1.5rem));
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
@@ -54,8 +54,8 @@
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-	width: 2.25rem;
-	height: 2.25rem;
+	width: 1.75rem;
+	height: 1.75rem;
 	padding: 0;
 	color: var(--voice-text-strong);
 	background-color: var(--voice-surface-4);

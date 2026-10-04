@@ -36,8 +36,18 @@ export function StreamZoomPanel({
 		const stream = sourceVideoRef.current?.srcObject ?? null;
 		if (!mini || !stream) return;
 		mini.srcObject = stream;
+		const syncAspectRatio = () => {
+			if (mini.videoWidth > 0 && mini.videoHeight > 0 && miniMapRef.current) {
+				miniMapRef.current.style.aspectRatio = `${mini.videoWidth} / ${mini.videoHeight}`;
+			}
+		};
+		mini.addEventListener('loadedmetadata', syncAspectRatio);
+		mini.addEventListener('resize', syncAspectRatio);
+		syncAspectRatio();
 		void mini.play().catch(() => {});
 		return () => {
+			mini.removeEventListener('loadedmetadata', syncAspectRatio);
+			mini.removeEventListener('resize', syncAspectRatio);
 			mini.srcObject = null;
 		};
 	}, [sourceVideoRef]);
@@ -79,7 +89,7 @@ export function StreamZoomPanel({
 				}}
 				data-flx="voice.stream-zoom-panel.mini-map"
 			>
-				<video ref={miniVideoRef} className={styles.miniVideo} muted playsInline autoPlay />
+				<video ref={miniVideoRef} className={styles.miniVideo} data-stream-zoom-minimap muted playsInline autoPlay />
 				<div className={styles.viewport} style={viewportStyle} data-flx="voice.stream-zoom-panel.viewport" />
 			</div>
 			<div className={styles.controls} data-flx="voice.stream-zoom-panel.controls">
@@ -91,7 +101,7 @@ export function StreamZoomPanel({
 					title={i18n._(ZOOM_OUT_DESCRIPTOR)}
 					data-flx="voice.stream-zoom-panel.zoom-out"
 				>
-					<MagnifyingGlassMinusIcon size={20} weight="bold" />
+					<MagnifyingGlassMinusIcon size={16} weight="bold" />
 				</button>
 				<input
 					type="range"
@@ -112,7 +122,7 @@ export function StreamZoomPanel({
 					title={i18n._(ZOOM_IN_DESCRIPTOR)}
 					data-flx="voice.stream-zoom-panel.zoom-in"
 				>
-					<MagnifyingGlassPlusIcon size={20} weight="bold" />
+					<MagnifyingGlassPlusIcon size={16} weight="bold" />
 				</button>
 			</div>
 		</div>
