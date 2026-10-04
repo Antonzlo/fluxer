@@ -21,6 +21,7 @@ import {
 	resolveVoiceProcessing,
 	type VoiceProcessingMode,
 } from '@app/features/voice/utils/VoiceProcessingProfile';
+import {resolveVoiceInputConfig} from '@app/features/voice/utils/VoiceInputProcessor';
 import {boostedVoiceVolumePercentToTrackVolume} from '@app/features/voice/utils/VoiceVolumeUtils';
 import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 
@@ -53,7 +54,6 @@ export const useMicTest = (settings: MicTestSettings) => {
 	const [level, setLevel] = useState(0);
 	const [peakLevel, setPeakLevel] = useState(0);
 	const inputLeaseRef = useRef<VoiceInputContextLease | null>(null);
-	const inputVolumeRef = useRef(settings.inputVolume);
 	const graphRef = useRef<MicTestAudioGraph | null>(null);
 	const playbackDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 	const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -226,7 +226,6 @@ export const useMicTest = (settings: MicTestSettings) => {
 			}
 			inputLeaseRef.current = acquired.lease;
 			const audioContext = acquired.lease.context;
-			inputVolumeRef.current = settings.inputVolume;
 			const outputSinkId = normalizeOutputDeviceId(settings.outputDeviceId);
 			const playbackDestination = audioContext.createMediaStreamDestination();
 			playbackDestinationRef.current = playbackDestination;
@@ -236,14 +235,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 				source: acquired.source,
 				sourceTrack,
 				channelCount: profile.stereoCapture ? 2 : 1,
-				resolveConfig: () => ({
-					backend: resolveVoiceProcessing(settings, readEffectiveNoiseSuppressionBackend(), false)
-						.noiseSuppressionBackend,
-					inputVolumePercent: inputVolumeRef.current,
-					gateEnabled: false,
-					gateAuto: true,
-					gateThresholdRms: 0,
-				}),
+				resolveConfig: resolveVoiceInputConfig,
 				outputGain: boostedVoiceVolumePercentToTrackVolume(settings.outputVolume),
 				playbackTarget,
 				playbackDelaySeconds: MIC_TEST_MONITOR_DELAY_SECONDS,
@@ -304,7 +296,6 @@ export const useMicTest = (settings: MicTestSettings) => {
 	useEffect(() => {
 		if (!isTesting) return;
 		if (graphRef.current) {
-			inputVolumeRef.current = settings.inputVolume;
 			void graphRef.current.configure();
 			graphRef.current.outputGain.gain.value = boostedVoiceVolumePercentToTrackVolume(settings.outputVolume);
 		}
