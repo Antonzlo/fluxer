@@ -50,7 +50,11 @@ const BITRATE_RUNGS = [
 	'source',
 ] as const satisfies ReadonlyArray<ScreenshareResolution>;
 
-export function resolveScreenShareFrameRate(frameRate: number): SupportedScreenShareFrameRate {
+export const HIGH_SCREEN_SHARE_FRAME_RATE_THRESHOLD = 90;
+
+export function resolveScreenShareFrameRate(frameRate: number, highFrameRates: boolean): SupportedScreenShareFrameRate {
+	if (highFrameRates && frameRate >= 120) return 120;
+	if (highFrameRates && frameRate >= HIGH_SCREEN_SHARE_FRAME_RATE_THRESHOLD) return 90;
 	if (frameRate >= 60) return 60;
 	if (frameRate >= 30) return 30;
 	return 15;
@@ -180,7 +184,8 @@ export function resolveEffectiveScreenShareDimensions(
 
 export function buildScreenShareOptions(config: ScreenShareBuildConfig): BuiltScreenShareOptions {
 	const {width, height, rung} = resolveEffectiveScreenShareDimensions(config.resolution, config.sourceDimensions);
-	const resolvedFrameRate = resolveScreenShareFrameRate(config.frameRate);
+	// The frame rate comes from a resolved target, which already applied the high frame rate opt-in.
+	const resolvedFrameRate = resolveScreenShareFrameRate(config.frameRate, true);
 	const maxBitrate = computeScreenShareBitrateBps(width * height, rung, resolvedFrameRate);
 	const video: ScreenShareVideoOptions = {
 		cursor: resolveScreenShareCursorCapture(config.preferredDisplaySurface),
@@ -239,13 +244,14 @@ export function resolveStreamingModeSettings(
 	customResolution: ScreenshareResolution,
 	customFrameRate: number,
 	hasHigherQuality: boolean,
+	highFrameRates: boolean,
 ): {
 	resolution: ScreenshareResolution;
 	frameRate: SupportedScreenShareFrameRate;
 } {
 	const resolved =
 		mode === 'custom'
-			? {resolution: customResolution, frameRate: resolveScreenShareFrameRate(customFrameRate)}
+			? {resolution: customResolution, frameRate: resolveScreenShareFrameRate(customFrameRate, highFrameRates)}
 			: (hasHigherQuality ? STREAMING_MODE_PRESETS : FREE_STREAMING_MODE_PRESETS)[mode];
 	if (hasHigherQuality) {
 		return resolved;
@@ -284,6 +290,7 @@ export interface ScreenShareQualityInput {
 	storedResolution: ScreenshareResolution;
 	storedFrameRate: number;
 	entitled: boolean;
+	highFrameRates: boolean;
 	context: ScreenShareContext;
 }
 
@@ -363,7 +370,13 @@ function resolveEffectiveScreenShareQuality(input: ScreenShareQualityInput): {
 } {
 	const mode = normaliseStreamingModeForContext(input.mode, input.context);
 	const resolution = normaliseResolutionForContext(input.storedResolution, input.context, input.entitled);
-	const settings = resolveStreamingModeSettings(mode, resolution, input.storedFrameRate, input.entitled);
+	const settings = resolveStreamingModeSettings(
+		mode,
+		resolution,
+		input.storedFrameRate,
+		input.entitled,
+		input.highFrameRates,
+	);
 	return {mode, resolution: settings.resolution, frameRate: settings.frameRate};
 }
 
@@ -416,7 +429,7 @@ export function resolveScreenShareTarget(input: ScreenShareTargetInput): ScreenS
 			!input.entitled &&
 			input.mode === 'custom' &&
 			(PREMIUM_SCREEN_SHARE_RESOLUTIONS.includes(input.storedResolution) ||
-				resolveScreenShareFrameRate(input.storedFrameRate) > FREE_TIER_MAX_FRAME_RATE),
+				resolveScreenShareFrameRate(input.storedFrameRate, input.highFrameRates) > FREE_TIER_MAX_FRAME_RATE),
 		deviceMapped:
 			effective.mode !== onDisplay.mode ||
 			effective.resolution !== onDisplay.resolution ||
@@ -589,6 +602,7 @@ export function resolveScreenShareQualityPick(
 		};
 	}
 	if (!input.entitled && pick.frameRate > FREE_TIER_MAX_FRAME_RATE) return null;
+	if (!input.highFrameRates && pick.frameRate >= HIGH_SCREEN_SHARE_FRAME_RATE_THRESHOLD) return null;
 	if (pick.frameRate === effective.frameRate) return null;
 	return {
 		streamingMode: 'custom',

@@ -142,6 +142,11 @@ const HEVC_SCREEN_SHARE_OPT_IN_DESCRIPTOR = msg({
 	comment:
 		'Switch label for the H.265/HEVC screen-share opt-in. H.265 and HEVC are codec names and should stay literal.',
 });
+const HIGH_FRAME_RATES_SCREEN_SHARE_OPT_IN_DESCRIPTOR = msg({
+	message: 'Allow 90 and 120 FPS for screen sharing',
+	comment:
+		'Switch label for the high frame rate screen-share opt-in. FPS means frames per second and should stay uppercase.',
+});
 const SCREEN_SHARE_CODEC_OPTION_ORDER = ['av1', 'h265', 'h264', 'vp9', 'vp8'] as const;
 
 function useLoadedGpuEncoderReport(): HardwareEncodeReport | null {
@@ -215,6 +220,19 @@ export const ScreenShareHevcOptInControl = observer(() => {
 			onChange={(value) => VoiceSettingsCommands.update({screenShareHevcOptIn: value})}
 			compact
 			data-flx="user.advanced-settings-tab.switch.screen-share-hevc-opt-in"
+		/>
+	);
+});
+
+export const ScreenShareHighFrameRatesControl = observer(() => {
+	const {i18n} = useLingui();
+	return (
+		<Switch
+			ariaLabel={i18n._(HIGH_FRAME_RATES_SCREEN_SHARE_OPT_IN_DESCRIPTOR)}
+			value={VoiceSettings.getScreenShareHighFrameRates()}
+			onChange={(value) => VoiceSettingsCommands.update({screenShareHighFrameRates: value})}
+			compact
+			data-flx="user.advanced-settings-tab.switch.screen-share-high-frame-rates"
 		/>
 	);
 });

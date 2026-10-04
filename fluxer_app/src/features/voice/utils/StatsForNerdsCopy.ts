@@ -268,6 +268,7 @@ async function collectVoiceSettingsMetadata(): Promise<Record<string, unknown>> 
 		VoiceSettings.getScreenshareResolution(),
 		VoiceSettings.getVideoFrameRate(),
 		hasHigherVideoQuality(),
+		VoiceSettings.getScreenShareHighFrameRates(),
 	);
 	return {
 		inputDeviceIdHash: await hashString(VoiceSettings.getInputDeviceId()),
@@ -470,6 +471,7 @@ export function collectStatsForNerdsSnapshot(): StatsForNerdsData {
 		VoiceSettings.getScreenshareResolution(),
 		VoiceSettings.getVideoFrameRate(),
 		hasHigherVideoQuality(),
+		VoiceSettings.getScreenShareHighFrameRates(),
 	);
 	const localParticipant = MediaEngine.room?.localParticipant ?? null;
 	const voicePresentation = buildVoiceStatsForNerdsPresentation({

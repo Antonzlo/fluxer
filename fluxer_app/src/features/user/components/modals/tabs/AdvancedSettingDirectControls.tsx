@@ -50,6 +50,7 @@ import {
 	ScreenShareCodecControl,
 	ScreenShareEncoderControls,
 	ScreenShareHevcOptInControl,
+	ScreenShareHighFrameRatesControl,
 	ScreenSharePreviewBehaviorControl,
 } from '@app/features/user/components/modals/tabs/advanced_settings_tab/AdvancedVideoControls';
 import {
@@ -94,6 +95,7 @@ export const DIRECT_CONTROL_ITEM_IDS = new Set([
 	'voice-video-screen-share-codec',
 	'voice-video-screen-share-av1-opt-in',
 	'voice-video-screen-share-hevc-opt-in',
+	'voice-video-screen-share-high-frame-rates',
 	'voice-video-screen-share-preview-behavior',
 	'voice-video-screen-share-encoder-controls',
 	'advanced-unread-badge-customization',
@@ -135,6 +137,7 @@ export const COMPACT_SWITCH_CONTROL_ITEM_IDS = new Set([
 	'voice-video-connection-volume-controls',
 	'voice-video-screen-share-av1-opt-in',
 	'voice-video-screen-share-hevc-opt-in',
+	'voice-video-screen-share-high-frame-rates',
 	'advanced-unread-badge-customization',
 	'advanced-expression-clone-shortcuts',
 	'client-developer-mode',
@@ -301,6 +304,10 @@ export const AdvancedSettingControl = observer(({item}: {item: SearchableSetting
 		case 'voice-video-screen-share-hevc-opt-in':
 			return (
 				<ScreenShareHevcOptInControl data-flx="user.advanced-setting-direct-controls.advanced-setting-control.screen-share-hevc-opt-in-control" />
+			);
+		case 'voice-video-screen-share-high-frame-rates':
+			return (
+				<ScreenShareHighFrameRatesControl data-flx="user.advanced-setting-direct-controls.advanced-setting-control.screen-share-high-frame-rates-control" />
 			);
 		case 'voice-video-screen-share-preview-behavior':
 			return (

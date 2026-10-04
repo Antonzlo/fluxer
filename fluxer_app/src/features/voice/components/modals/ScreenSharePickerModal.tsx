@@ -1425,6 +1425,7 @@ const ScreenSharePickerModalLoadedContent = observer(
 			storedResolution: VoiceSettings.getScreenshareResolution(),
 			storedFrameRate: VoiceSettings.getVideoFrameRate(),
 			entitled: hasHigherVideoQuality,
+			highFrameRates: VoiceSettings.getScreenShareHighFrameRates(),
 			context: shareContext,
 			sourceDimensions: null,
 			hintSetting: VoiceSettings.getScreenShareContentHint(),

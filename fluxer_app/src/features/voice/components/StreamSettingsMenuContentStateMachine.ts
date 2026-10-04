@@ -246,6 +246,7 @@ const STREAM_SETTINGS_FREE_RESOLUTIONS: ReadonlyArray<OfferedScreenShareResoluti
 const STREAM_SETTINGS_PREMIUM_RESOLUTIONS: ReadonlyArray<OfferedScreenShareResolution> = ['high', 'ultra', 'source'];
 const STREAM_SETTINGS_FREE_FRAME_RATES: ReadonlyArray<SupportedScreenShareFrameRate> = [15, 30];
 const STREAM_SETTINGS_PREMIUM_FRAME_RATES: ReadonlyArray<SupportedScreenShareFrameRate> = [60];
+const STREAM_SETTINGS_HIGH_FRAME_RATES: ReadonlyArray<SupportedScreenShareFrameRate> = [90, 120];
 
 export interface StreamSettingsQualityOption<T> {
 	value: T;
@@ -311,7 +312,9 @@ export function selectStreamSettingsQualityMenuState(
 			(value) =>
 				value === signals.target.frameRate ||
 				STREAM_SETTINGS_FREE_FRAME_RATES.includes(value) ||
-				(offersPremium && STREAM_SETTINGS_PREMIUM_FRAME_RATES.includes(value)),
+				(offersPremium &&
+					(STREAM_SETTINGS_PREMIUM_FRAME_RATES.includes(value) ||
+						(signals.quality.highFrameRates && STREAM_SETTINGS_HIGH_FRAME_RATES.includes(value)))),
 		).map((value) =>
 			buildOption(value, !STREAM_SETTINGS_FREE_FRAME_RATES.includes(value), value === signals.target.frameRate, {
 				axis: 'frameRate',

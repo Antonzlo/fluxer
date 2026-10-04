@@ -176,6 +176,7 @@ export const VideoTab: React.FC<VideoTabProps> = observer(
 			storedResolution: screenshareResolution,
 			storedFrameRate: videoFrameRate,
 			entitled: hasHigherQuality,
+			highFrameRates: voiceSettings.screenShareHighFrameRates,
 			context: liveShareContext ?? 'display',
 		};
 		const screenShareState = resolveUserVideoTabScreenShareState({

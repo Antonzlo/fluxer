@@ -35,6 +35,7 @@ const FREE_SCREEN_SHARE_RESOLUTIONS: ReadonlyArray<OfferedScreenShareResolution>
 const PREMIUM_SCREEN_SHARE_RESOLUTIONS: ReadonlyArray<OfferedScreenShareResolution> = ['high', 'ultra', 'source'];
 const FREE_SCREEN_SHARE_FRAME_RATES: ReadonlyArray<SupportedScreenShareFrameRate> = [15, 30];
 const PREMIUM_SCREEN_SHARE_FRAME_RATES: ReadonlyArray<SupportedScreenShareFrameRate> = [15, 30, 60];
+const HIGH_SCREEN_SHARE_FRAME_RATES: ReadonlyArray<SupportedScreenShareFrameRate> = [90, 120];
 
 export interface UserVideoTabScreenShareInput {
 	quality: ScreenShareQualityInput;
@@ -76,9 +77,14 @@ function buildResolutionOptions(
 
 function buildFrameRateOptions(
 	entitled: boolean,
+	highFrameRates: boolean,
 	effective: SupportedScreenShareFrameRate,
 ): ReadonlyArray<SupportedScreenShareFrameRate> {
-	const offered = entitled ? PREMIUM_SCREEN_SHARE_FRAME_RATES : FREE_SCREEN_SHARE_FRAME_RATES;
+	const offered = entitled
+		? highFrameRates
+			? [...PREMIUM_SCREEN_SHARE_FRAME_RATES, ...HIGH_SCREEN_SHARE_FRAME_RATES]
+			: PREMIUM_SCREEN_SHARE_FRAME_RATES
+		: FREE_SCREEN_SHARE_FRAME_RATES;
 	return SUPPORTED_SCREEN_SHARE_FRAME_RATES.filter((value) => value === effective || offered.includes(value));
 }
 
@@ -94,13 +100,13 @@ export function resolveUserVideoTabScreenShareState(input: UserVideoTabScreenSha
 			input.quality.context,
 			resolution,
 		),
-		frameRateOptions: buildFrameRateOptions(input.quality.entitled, target.frameRate),
+		frameRateOptions: buildFrameRateOptions(input.quality.entitled, input.quality.highFrameRates, target.frameRate),
 		preset: input.quality.mode === 'custom' ? null : input.quality.mode,
 		presetOverriddenByContext: selectStreamSettingsPresetOverriddenByContext(input.quality.mode, input.quality.context),
 		saved: target.tierLimited
 			? {
 					resolution: offeredScreenShareResolution(input.quality.storedResolution),
-					frameRate: resolveScreenShareFrameRate(input.quality.storedFrameRate),
+					frameRate: resolveScreenShareFrameRate(input.quality.storedFrameRate, input.quality.highFrameRates),
 				}
 			: null,
 	};

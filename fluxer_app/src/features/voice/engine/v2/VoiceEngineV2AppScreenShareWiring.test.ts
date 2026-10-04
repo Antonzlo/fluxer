@@ -918,6 +918,7 @@ describe('the video settings tab', () => {
 			storedResolution: 'source',
 			storedFrameRate: 30,
 			entitled: false,
+			highFrameRates: false,
 			context: 'display',
 		} as const;
 		expect(stateOf(quality)).toEqual({
@@ -937,6 +938,7 @@ describe('the video settings tab', () => {
 			storedResolution: 'medium',
 			storedFrameRate: 30,
 			entitled: true,
+			highFrameRates: false,
 			context: 'display',
 		} as const;
 		expect(stateOf(quality)).toEqual({
@@ -959,6 +961,7 @@ describe('the video settings tab', () => {
 				storedResolution: 'high',
 				storedFrameRate: 60,
 				entitled: false,
+				highFrameRates: false,
 				context: 'display',
 			}),
 		).toEqual({
@@ -975,7 +978,14 @@ describe('the video settings tab', () => {
 	it('offers a self-hosted free account nothing it cannot send', () => {
 		expect(
 			stateOf(
-				{mode: 'custom', storedResolution: 'medium', storedFrameRate: 30, entitled: false, context: 'display'},
+				{
+					mode: 'custom',
+					storedResolution: 'medium',
+					storedFrameRate: 30,
+					entitled: false,
+					highFrameRates: false,
+					context: 'display',
+				},
 				true,
 			),
 		).toMatchObject({
@@ -995,7 +1005,7 @@ describe('the video settings tab', () => {
 					for (const entitled of [false, true]) {
 						for (const selfHosted of [false, true]) {
 							const state = stateOf(
-								{mode, storedResolution, storedFrameRate, entitled, context: 'display'},
+								{mode, storedResolution, storedFrameRate, entitled, highFrameRates: false, context: 'display'},
 								selfHosted,
 							);
 							const scenario = `${mode}|${storedResolution}|${storedFrameRate}|${entitled}|${selfHosted}`;
@@ -1015,6 +1025,7 @@ describe('the video settings tab', () => {
 			storedResolution: 'source',
 			storedFrameRate: 60,
 			entitled: false,
+			highFrameRates: false,
 			context: 'display',
 		} as const;
 		expect(resolveScreenShareQualityPick(quality, {axis: 'frameRate', frameRate: 60})).toBeNull();
@@ -1052,6 +1063,7 @@ describe('the in-call stream menu', () => {
 		storedResolution: 'medium',
 		storedFrameRate: 30,
 		entitled: false,
+		highFrameRates: false,
 		context: 'display',
 	} as const;
 	const writeFor = (
@@ -1107,6 +1119,7 @@ describe('the in-call stream menu', () => {
 			storedResolution: 'high',
 			storedFrameRate: 30,
 			entitled: true,
+			highFrameRates: false,
 			context: 'display',
 		});
 		expect(state.resolutions.map((option) => option.value)).toEqual(['low_480p', 'medium', 'high', 'ultra', 'source']);
@@ -1126,6 +1139,7 @@ describe('the in-call stream menu', () => {
 			storedResolution: VoiceSettings.getScreenshareResolution(),
 			storedFrameRate: VoiceSettings.getVideoFrameRate(),
 			entitled: true,
+			highFrameRates: false,
 			context: 'display',
 		} as const;
 		const menuState = menuStateOf(quality);
@@ -1166,6 +1180,7 @@ describe('the in-call stream menu', () => {
 				storedResolution: VoiceSettings.getScreenshareResolution(),
 				storedFrameRate: 30,
 				entitled: true,
+				highFrameRates: false,
 				context: 'display',
 			} as const;
 			expect(
@@ -1191,6 +1206,7 @@ describe('the in-call stream menu', () => {
 			storedResolution: 'source',
 			storedFrameRate: 60,
 			entitled: true,
+			highFrameRates: false,
 			context: 'device',
 		});
 		expect(state.resolutions.map((option) => option.value)).toEqual(['low_480p', 'medium', 'high', 'ultra']);
@@ -1218,7 +1234,14 @@ describe('the in-call stream menu', () => {
 
 	it('keeps the premium rungs for an entitled account that sees no premium upsell', () => {
 		const state = menuStateOf(
-			{mode: 'custom', storedResolution: 'ultra', storedFrameRate: 30, entitled: true, context: 'display'},
+			{
+				mode: 'custom',
+				storedResolution: 'ultra',
+				storedFrameRate: 30,
+				entitled: true,
+				highFrameRates: false,
+				context: 'display',
+			},
 			false,
 		);
 		expect(state.resolutions.map((option) => option.value)).toEqual(['low_480p', 'medium', 'high', 'ultra', 'source']);
@@ -1233,7 +1256,7 @@ describe('the in-call stream menu', () => {
 					for (const entitled of [false, true]) {
 						for (const context of ['display', 'app', 'device'] as const) {
 							for (const showPremiumFeatures of [false, true]) {
-								const quality = {mode, storedResolution, storedFrameRate, entitled, context};
+								const quality = {mode, storedResolution, storedFrameRate, entitled, highFrameRates: false, context};
 								const target = resolveScreenShareTarget({...quality, sourceDimensions: null, hintSetting: 'auto'});
 								const state = menuStateOf(quality, showPremiumFeatures);
 								const scenario = `${mode}|${storedResolution}|${storedFrameRate}|${entitled}|${context}|${showPremiumFeatures}`;

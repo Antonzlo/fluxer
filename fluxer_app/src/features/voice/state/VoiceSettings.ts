@@ -100,6 +100,7 @@ type VoiceSettingsUpdate = Partial<{
 	preferredScreenShareCodec: CodecPreference;
 	screenShareAv1OptIn: boolean;
 	screenShareHevcOptIn: boolean;
+	screenShareHighFrameRates: boolean;
 	screenShareContentHint: ScreenShareContentHint;
 	screenShareEncoderMode: ScreenShareEncoderMode;
 	screenShareScalabilityMode: ScreenShareScalabilityModePreference;
@@ -469,6 +470,7 @@ class VoiceSettings {
 	preferredScreenShareCodec: CodecPreference = 'auto';
 	screenShareAv1OptIn = false;
 	screenShareHevcOptIn = false;
+	screenShareHighFrameRates = false;
 	screenShareAv1OptOutMigratedV1 = false;
 	screenShareHevcOptOutMigratedV1 = false;
 	deepFilterDefaultRetiredMigratedV1 = false;
@@ -539,6 +541,7 @@ class VoiceSettings {
 				getPreferredScreenShareCodec: false,
 				getScreenShareAv1OptIn: false,
 				getScreenShareHevcOptIn: false,
+				getScreenShareHighFrameRates: false,
 				getScreenShareContentHint: false,
 				getScreenShareContentHintOverride: false,
 				getScreenShareEncoderMode: false,
@@ -655,6 +658,7 @@ class VoiceSettings {
 			'preferredScreenShareCodec',
 			'screenShareAv1OptIn',
 			'screenShareHevcOptIn',
+			'screenShareHighFrameRates',
 			'screenShareAv1OptOutMigratedV1',
 			'screenShareHevcOptOutMigratedV1',
 			'deepFilterDefaultRetiredMigratedV1',
@@ -946,6 +950,10 @@ class VoiceSettings {
 		return this.screenShareHevcOptIn;
 	}
 
+	getScreenShareHighFrameRates(): boolean {
+		return this.screenShareHighFrameRates;
+	}
+
 	getScreenShareContentHint(): ScreenShareContentHint {
 		return this.screenShareContentHint;
 	}
@@ -1107,6 +1115,8 @@ class VoiceSettings {
 			this.preferredScreenShareCodec = validated.preferredScreenShareCodec;
 		if (validated.screenShareAv1OptIn !== undefined) this.screenShareAv1OptIn = validated.screenShareAv1OptIn;
 		if (validated.screenShareHevcOptIn !== undefined) this.screenShareHevcOptIn = validated.screenShareHevcOptIn;
+		if (validated.screenShareHighFrameRates !== undefined)
+			this.screenShareHighFrameRates = validated.screenShareHighFrameRates;
 		if (validated.screenShareContentHint !== undefined) this.screenShareContentHint = validated.screenShareContentHint;
 		if (validated.screenShareEncoderMode !== undefined) this.screenShareEncoderMode = validated.screenShareEncoderMode;
 		if (validated.screenShareScalabilityMode !== undefined)
@@ -1235,6 +1245,7 @@ class VoiceSettings {
 			),
 			screenShareAv1OptIn,
 			screenShareHevcOptIn,
+			screenShareHighFrameRates: data.screenShareHighFrameRates ?? this.screenShareHighFrameRates,
 			screenShareContentHint: validateScreenShareContentHint(
 				data.screenShareContentHint ?? this.screenShareContentHint,
 			),

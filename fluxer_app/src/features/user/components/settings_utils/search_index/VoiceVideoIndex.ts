@@ -93,6 +93,23 @@ const ALLOW_HEVC_SCREEN_SHARE_DESCRIPTOR = msg({
 	comment:
 		'Settings search entry label for the H.265/HEVC screen-share opt-in. H.265 and HEVC are codec names and should stay literal.',
 });
+const ALLOW_HIGH_FRAME_RATES_SCREEN_SHARE_DESCRIPTOR = msg({
+	message: 'Allow 90 and 120 FPS for screen sharing',
+	comment:
+		'Settings search entry label for the high frame rate screen-share opt-in. FPS means frames per second and should stay uppercase.',
+});
+const HIGH_FRAME_RATES_COMPATIBILITY_NOTE_DESCRIPTOR = msg({
+	message: 'Adds 90 and 120 FPS to stream quality. Needs a fast display, encoder, and viewers.',
+	comment: 'Settings search entry description for the high frame rate screen-share opt-in. FPS stays uppercase.',
+});
+const FRAME_RATE_KEYWORD_DESCRIPTOR = msg({
+	message: 'Frame rate',
+	comment: 'Settings search synonym. Used to match this term when the user types it in the settings search bar.',
+});
+const FPS_KEYWORD_DESCRIPTOR = msg({
+	message: 'FPS',
+	comment: 'Settings search synonym. Used to match this term when the user types it in the settings search bar.',
+});
 const ADVANCED_CODEC_COMPATIBILITY_NOTE_DESCRIPTOR = msg({
 	message: 'May cause compatibility issues for viewers. We’re working on improving this.',
 	comment: 'Settings search entry description for the AV1 and H.265 screen-share opt-in toggles.',
@@ -216,6 +233,16 @@ export const voiceVideoIndex: Array<SearchableSettingDescriptor> = [
 		label: ALLOW_HEVC_SCREEN_SHARE_DESCRIPTOR,
 		keywords: [HEVC_KEYWORD_DESCRIPTOR, CODEC_DESCRIPTOR, VIDEO_CODEC_DESCRIPTOR],
 		description: ADVANCED_CODEC_COMPATIBILITY_NOTE_DESCRIPTOR,
+		audience: 'advanced',
+		tags: ['media', 'voice'],
+	},
+	{
+		id: 'voice-video-screen-share-high-frame-rates',
+		tabType: 'voice_video',
+		sectionId: 'video',
+		label: ALLOW_HIGH_FRAME_RATES_SCREEN_SHARE_DESCRIPTOR,
+		keywords: [FPS_KEYWORD_DESCRIPTOR, FRAME_RATE_KEYWORD_DESCRIPTOR],
+		description: HIGH_FRAME_RATES_COMPATIBILITY_NOTE_DESCRIPTOR,
 		audience: 'advanced',
 		tags: ['media', 'voice'],
 	},

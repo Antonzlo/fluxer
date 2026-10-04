@@ -218,6 +218,7 @@ export function resolveConfiguredScreenShareTarget(
 		storedResolution: VoiceSettings.getScreenshareResolution(),
 		storedFrameRate: VoiceSettings.getVideoFrameRate(),
 		entitled: hasHigherVideoQuality(),
+		highFrameRates: VoiceSettings.getScreenShareHighFrameRates(),
 		context,
 		sourceDimensions,
 		hintSetting: VoiceSettings.getScreenShareContentHint(),

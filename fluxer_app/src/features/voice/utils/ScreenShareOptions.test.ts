@@ -6,6 +6,7 @@ import {
 	resolveScreenShareDegradationPreference,
 	resolveScreenShareFrameRate,
 	resolveScreenShareLayering,
+	resolveScreenShareQualityPick,
 	resolveScreenShareTarget,
 } from '@app/features/voice/utils/ScreenShareOptions';
 import {describe, expect, it, vi} from 'vitest';
@@ -31,12 +32,21 @@ function collectKeys(value: unknown, keys: Set<string>): Set<string> {
 	return keys;
 }
 
-function targetOf(overrides: {mode?: 'gaming' | 'screenshare' | 'custom'; softwareEncoderClamp?: boolean} = {}) {
+function targetOf(
+	overrides: {
+		mode?: 'gaming' | 'screenshare' | 'custom';
+		storedFrameRate?: number;
+		highFrameRates?: boolean;
+		entitled?: boolean;
+		softwareEncoderClamp?: boolean;
+	} = {},
+) {
 	return resolveScreenShareTarget({
 		mode: overrides.mode ?? 'screenshare',
 		storedResolution: 'medium',
-		storedFrameRate: 30,
-		entitled: true,
+		storedFrameRate: overrides.storedFrameRate ?? 30,
+		entitled: overrides.entitled ?? true,
+		highFrameRates: overrides.highFrameRates ?? false,
 		context: 'display',
 		sourceDimensions: null,
 		hintSetting: 'auto',
@@ -79,9 +89,46 @@ describe('display capture constraints', () => {
 describe('screen share quality', () => {
 	it('uses the 1080p30 preset and lands the faster rungs on 60 FPS', () => {
 		expect(targetOf()).toMatchObject({resolution: 'high', frameRate: 30});
-		expect(resolveScreenShareFrameRate(120)).toBe(60);
-		expect(resolveScreenShareFrameRate(90)).toBe(60);
-		expect(resolveScreenShareFrameRate(60)).toBe(60);
+		expect(resolveScreenShareFrameRate(120, false)).toBe(60);
+		expect(resolveScreenShareFrameRate(90, false)).toBe(60);
+		expect(resolveScreenShareFrameRate(60, false)).toBe(60);
+	});
+
+	it('lands 90 and 120 FPS only when high frame rates are on', () => {
+		expect(resolveScreenShareFrameRate(120, true)).toBe(120);
+		expect(resolveScreenShareFrameRate(100, true)).toBe(90);
+		expect(resolveScreenShareFrameRate(90, true)).toBe(90);
+		expect(resolveScreenShareFrameRate(75, true)).toBe(60);
+		expect(targetOf({mode: 'custom', storedFrameRate: 120, highFrameRates: false})).toMatchObject({frameRate: 60});
+		expect(targetOf({mode: 'custom', storedFrameRate: 120, highFrameRates: true})).toMatchObject({frameRate: 120});
+	});
+
+	it('keeps 90 and 120 FPS premium and behind the software H.264 clamp', () => {
+		expect(targetOf({mode: 'custom', storedFrameRate: 120, highFrameRates: true, entitled: false})).toMatchObject({
+			frameRate: 30,
+		});
+		expect(
+			targetOf({mode: 'custom', storedFrameRate: 120, highFrameRates: true, softwareEncoderClamp: true}),
+		).toMatchObject({frameRate: 30});
+	});
+
+	it('refuses to pick 90 or 120 FPS while high frame rates are off', () => {
+		const input = {
+			mode: 'custom',
+			storedResolution: 'high',
+			storedFrameRate: 60,
+			entitled: true,
+			context: 'display',
+		} as const;
+		expect(
+			resolveScreenShareQualityPick({...input, highFrameRates: false}, {axis: 'frameRate', frameRate: 120}),
+		).toBeNull();
+		expect(
+			resolveScreenShareQualityPick({...input, highFrameRates: true}, {axis: 'frameRate', frameRate: 120}),
+		).toEqual({
+			streamingMode: 'custom',
+			videoFrameRate: 120,
+		});
 	});
 
 	it('reads the bitrate off the pixel budget', () => {
@@ -98,7 +145,7 @@ describe('screen share quality', () => {
 		});
 		expect(publishOptions.screenShareEncoding).toEqual({
 			maxBitrate: 9_000_000,
-			maxFramerate: 60,
+			maxFramerate: 90,
 			priority: 'high',
 		});
 		expect(publishOptions.degradationPreference).toBe('maintain-resolution');

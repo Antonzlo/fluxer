@@ -162,6 +162,7 @@ export function useStatsForNerds({enabled = true}: UseStatsForNerdsOptions = {})
 		VoiceSettings.getScreenshareResolution(),
 		VoiceSettings.getVideoFrameRate(),
 		hasHigherVideoQuality(),
+		VoiceSettings.getScreenShareHighFrameRates(),
 	);
 	const localParticipant = MediaEngine.room?.localParticipant ?? null;
 	const voicePresentation = buildVoiceStatsForNerdsPresentation({

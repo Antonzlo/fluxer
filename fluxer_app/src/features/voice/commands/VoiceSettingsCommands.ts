@@ -57,6 +57,7 @@ type VoiceSettingsPatch = Partial<{
 	preferredScreenShareCodec: CodecPreference;
 	screenShareAv1OptIn: boolean;
 	screenShareHevcOptIn: boolean;
+	screenShareHighFrameRates: boolean;
 	screenShareContentHint: ScreenShareContentHint;
 	screenShareEncoderMode: ScreenShareEncoderMode;
 	screenShareScalabilityMode: ScreenShareScalabilityModePreference;

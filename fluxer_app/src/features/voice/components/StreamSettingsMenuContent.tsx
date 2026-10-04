@@ -343,12 +343,14 @@ export const StreamSettingsMenuContent = observer(
 		const {inputDevices} = useMediaDevices({autoRefresh: true, requestPermissions: false});
 		const currentMode = VoiceSettings.getStreamingMode();
 		const currentResolution = VoiceSettings.getScreenshareResolution();
-		const currentFrameRate = resolveScreenShareFrameRate(VoiceSettings.getVideoFrameRate());
+		const highFrameRates = VoiceSettings.getScreenShareHighFrameRates();
+		const currentFrameRate = resolveScreenShareFrameRate(VoiceSettings.getVideoFrameRate(), highFrameRates);
 		const quality: ScreenShareQualityInput = {
 			mode: currentMode,
 			storedResolution: currentResolution,
 			storedFrameRate: currentFrameRate,
 			entitled: hasHigherVideoQuality,
+			highFrameRates,
 			context: shareContext,
 		};
 		const target: ScreenShareTarget = resolveScreenShareTarget({
