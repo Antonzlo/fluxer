@@ -111,6 +111,7 @@ export interface VoiceParticipantTileProps {
 	renderFocusedPlaceholder?: boolean;
 	presentation?: VoiceParticipantTilePresentation;
 	showParticipantMetadata?: boolean;
+	disableStreamZoom?: boolean;
 }
 
 export interface VoiceParticipantTileInnerProps {
@@ -125,6 +126,7 @@ export interface VoiceParticipantTileInnerProps {
 	renderFocusedPlaceholder: boolean;
 	presentation: VoiceParticipantTilePresentation;
 	showParticipantMetadata: boolean;
+	disableStreamZoom: boolean;
 }
 
 export function isCameraSource(source: unknown) {

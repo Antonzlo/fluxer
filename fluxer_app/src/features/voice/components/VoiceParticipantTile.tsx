@@ -202,6 +202,7 @@ export const VoiceParticipantTile = observer((props: VoiceParticipantTileProps) 
 		renderFocusedPlaceholder = false,
 		presentation = 'grid',
 		showParticipantMetadata = true,
+		disableStreamZoom = false,
 	} = props;
 	const effectiveTrackRef = useEffectiveTrackRef(trackRef);
 	const {elementProps} = useParticipantTile({
@@ -222,6 +223,7 @@ export const VoiceParticipantTile = observer((props: VoiceParticipantTileProps) 
 			renderFocusedPlaceholder={renderFocusedPlaceholder}
 			presentation={presentation}
 			showParticipantMetadata={showParticipantMetadata}
+			disableStreamZoom={disableStreamZoom}
 			data-flx="voice.voice-participant-tile.voice-participant-tile-inner.click"
 		/>
 	);
@@ -261,6 +263,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 	renderFocusedPlaceholder,
 	presentation,
 	showParticipantMetadata,
+	disableStreamZoom,
 }: VoiceParticipantTileInnerProps) {
 	const {i18n} = useLingui();
 	useMediaEngineVersion();
@@ -884,7 +887,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 	const hasVisibleMediaTile =
 		!isFocusedPlaceholderTile && isTrackReference(trackRef) && hasVideo && !shouldHideOwnScreenShareVideo;
 	const isAvatarOnlyTile = !hasVisibleMediaTile && !isScreenShare;
-	const streamZoomEnabled = hasVisibleMediaTile && isScreenShare && isFocusPresentationTile;
+	const streamZoomEnabled = hasVisibleMediaTile && isScreenShare && isFocusPresentationTile && !disableStreamZoom;
 	const streamZoom = useStreamZoom({enabled: streamZoomEnabled, tileRef});
 	const isStreamZoomed = streamZoomEnabled && streamZoom.zoom.scale > 1;
 	const streamZoomStyle = useMemo(

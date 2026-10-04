@@ -623,6 +623,7 @@ const PiPOverlayInnerBase = observer(function PiPOverlayInnerBase({content, room
 					showFocusIndicator={false}
 					showParticipantMetadata={false}
 					presentation="focus-main"
+					disableStreamZoom
 					data-flx="voice.pi-p-overlay.pi-p-overlay-inner.voice-participant-tile"
 				/>
 			)}
