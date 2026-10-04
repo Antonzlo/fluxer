@@ -46,6 +46,41 @@ jobs:
           echo "image=ghcr.io/${owner}/fluxer-app-proxy-self-hosted" >> "$GITHUB_OUTPUT"
           echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           echo "date=$(TZ=UTC git log -1 --pretty=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      # The wasm crates (markdown parser, libfluxcore, libfluxwebp) only change when
+      # their Rust sources do, so build them here and cache the outputs by source
+      # hash instead of recompiling inside Docker on every run. Same key as tests.yaml.
+      - name: restore wasm artifacts
+        id: wasm
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            fluxer_app/pkgs/libfluxcore
+            fluxer_app/pkgs/libfluxwebp
+            fluxer_app/src/features/messaging/utils/markdown/parser/MarkdownParserWasmBytes.ts
+          key: >-
+            app-wasm-${{ runner.os }}-1.98.1-${{ hashFiles('Cargo.lock', 'tools/ci/src/app_wasm.rs',
+            'tools/ci/templates/libfluxcore_wrapper.js', 'tools/ci/templates/libfluxcore_wrapper.d.ts',
+            'fluxer_app/rust/libfluxcore/Cargo.toml', 'fluxer_app/rust/libfluxcore/Cargo.lock',
+            'fluxer_app/rust/libfluxcore/.cargo/config.toml', 'fluxer_app/rust/libfluxcore/src/**',
+            'fluxer_app/rust/libfluxwebp/Cargo.toml', 'fluxer_app/rust/libfluxwebp/Cargo.lock',
+            'fluxer_app/rust/libfluxwebp/src/**', 'fluxer_app/rust/libfluxwebp/shim/**',
+            'fluxer_app/rust/libfluxwebp/simd/**',
+            'packages/markdown_parser/rust/Cargo.toml', 'packages/markdown_parser/rust/.cargo/config.toml',
+            'packages/markdown_parser/rust/src/**') }}
+      - name: set up Rust toolchain
+        if: steps.wasm.outputs.cache-hit != 'true'
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.98.1"
+          targets: wasm32-unknown-unknown
+      - name: build wasm artifacts
+        if: steps.wasm.outputs.cache-hit != 'true'
+        run: tools/ci/run.sh build-app-wasm
+      - name: stage wasm artifacts for the image build
+        run: |
+          mkdir .wasm-prebuilt
+          cp -a fluxer_app/pkgs/libfluxcore fluxer_app/pkgs/libfluxwebp .wasm-prebuilt/
+          cp fluxer_app/src/features/messaging/utils/markdown/parser/MarkdownParserWasmBytes.ts .wasm-prebuilt/
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
