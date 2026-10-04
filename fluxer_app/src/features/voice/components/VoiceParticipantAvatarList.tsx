@@ -4,6 +4,7 @@ import Accessibility from '@app/features/accessibility/state/Accessibility';
 import {remFromPx} from '@app/features/theme/layout/RemFromPx';
 import {VoiceParticipantContextMenu} from '@app/features/ui/action_menu/VoiceParticipantContextMenu';
 import {AvatarStack} from '@app/features/ui/avatars/AvatarStack';
+import {resolveAvatarStackMaxVisibleForWidth} from '@app/features/ui/avatars/AvatarStackGeometry';
 import {AvatarWithPresence} from '@app/features/ui/avatars/AvatarWithPresence';
 import * as ContextMenuCommands from '@app/features/ui/commands/ContextMenuCommands';
 import {Popout} from '@app/features/ui/popover/PopoverPopout';
@@ -169,6 +170,31 @@ function useResolvedWrappedAvatarGapPx(containerRef: React.RefObject<HTMLElement
 		};
 	}, [containerRef, measureGap]);
 	return gapPx;
+}
+
+function useMeasuredContainerWidthPx(
+	containerRef: React.RefObject<HTMLElement | null>,
+	enabled: boolean,
+): number | null {
+	const [widthPx, setWidthPx] = useState<number | null>(null);
+	useLayoutEffect(() => {
+		const container = containerRef.current;
+		if (!enabled || !container) {
+			setWidthPx(null);
+			return;
+		}
+		const measureWidth = () => setWidthPx(container.getBoundingClientRect().width);
+		measureWidth();
+		const ownerWindow = container.ownerDocument.defaultView ?? window;
+		if (typeof ownerWindow.ResizeObserver === 'undefined') {
+			ownerWindow.addEventListener('resize', measureWidth);
+			return () => ownerWindow.removeEventListener('resize', measureWidth);
+		}
+		const resizeObserver = new ownerWindow.ResizeObserver(measureWidth);
+		resizeObserver.observe(container);
+		return () => resizeObserver.disconnect();
+	}, [containerRef, enabled]);
+	return widthPx;
 }
 
 function useWrappedAvatarSlots(
@@ -355,6 +381,7 @@ interface VoiceParticipantSpeakingAvatarStackProps {
 	channelId?: string | null;
 	size?: number;
 	maxVisible?: number;
+	fitToWidth?: boolean;
 	className?: string;
 	enableProfileModal?: boolean;
 	showTooltips?: boolean;
@@ -382,13 +409,16 @@ export const VoiceParticipantSpeakingAvatarStack: React.FC<VoiceParticipantSpeak
 		guildId,
 		channelId,
 		size = 24,
-		maxVisible = 5,
+		maxVisible: maxVisibleCap = 5,
+		fitToWidth = false,
 		className,
 		enableProfileModal = true,
 		showTooltips = true,
 		deduplicateUsers = false,
 	}) {
 		const {i18n} = useLingui();
+		const fitContainerRef = useRef<HTMLDivElement | null>(null);
+		const availableWidthPx = useMeasuredContainerWidthPx(fitContainerRef, fitToWidth);
 		const entrySortSnapshotRef = useRef(createVoiceParticipantSortSnapshot());
 		const rawSortedEntries = useMemo(
 			() =>
@@ -407,6 +437,16 @@ export const VoiceParticipantSpeakingAvatarStack: React.FC<VoiceParticipantSpeak
 			[deduplicateUsers, rawSortedEntries],
 		);
 		const users = useMemo(() => sortedEntries.map((entry) => entry.user), [sortedEntries]);
+		const maxVisible =
+			fitToWidth && availableWidthPx != null
+				? resolveAvatarStackMaxVisibleForWidth({
+						availableWidthPx,
+						totalCount: sortedEntries.length,
+						sizePx: size,
+						overlapPx: 0,
+						remScale: getAppRemScale(),
+					})
+				: maxVisibleCap;
 		const remainingCount = Math.max(0, sortedEntries.length - maxVisible);
 		const handleUserContextMenu = useCallback(
 			(event: React.MouseEvent<HTMLElement>, user: User, index: number) => {
@@ -497,7 +537,7 @@ export const VoiceParticipantSpeakingAvatarStack: React.FC<VoiceParticipantSpeak
 				</Popout>
 			);
 		}, [channelId, guildId, sortedEntries, remainingCount, i18n.locale]);
-		return (
+		const avatarStack = (
 			<AvatarStack
 				users={users}
 				size={size}
@@ -513,6 +553,16 @@ export const VoiceParticipantSpeakingAvatarStack: React.FC<VoiceParticipantSpeak
 				onUserContextMenu={handleUserContextMenu}
 				data-flx="voice.voice-participant-avatar-list.voice-participant-speaking-avatar-stack.avatar-stack"
 			/>
+		);
+		if (!fitToWidth) return avatarStack;
+		return (
+			<div
+				ref={fitContainerRef}
+				className={styles.stackFitContainer}
+				data-flx="voice.voice-participant-avatar-list.voice-participant-speaking-avatar-stack.stack-fit-container"
+			>
+				{avatarStack}
+			</div>
 		);
 	},
 );

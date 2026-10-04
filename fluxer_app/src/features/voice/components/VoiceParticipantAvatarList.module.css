@@ -12,6 +12,11 @@
 	box-shadow: 0 0 0 0.1875rem var(--voice-status-success, var(--status-online));
 }
 
+.stackFitContainer {
+	width: 100%;
+	min-width: 0;
+}
+
 .wrapContainer {
 	--voice-participant-avatar-size: 4rem;
 	--voice-participant-avatar-gap: 0.75rem;

@@ -391,7 +391,8 @@ const ResolvedVoiceConnectionStatusInner = observer(function ResolvedVoiceConnec
 							guildId={avatarGuildId}
 							channelId={channel.id}
 							size={32}
-							maxVisible={4}
+							maxVisible={6}
+							fitToWidth
 							deduplicateUsers
 							data-flx="voice.voice-connection-status.voice-connection-status-inner.voice-participant-speaking-avatar-stack"
 						/>

@@ -48,6 +48,33 @@ export function resolveAvatarStackGeometry(sizePx: number, overlapPx?: number | 
 	};
 }
 
+export function resolveAvatarStackMaxVisibleForWidth({
+	availableWidthPx,
+	totalCount,
+	sizePx,
+	overlapPx,
+	remScale = 1,
+}: {
+	availableWidthPx: number;
+	totalCount: number;
+	sizePx: number;
+	overlapPx?: number | null;
+	remScale?: number;
+}): number {
+	const overlap = resolveAvatarStackOverlapPx(sizePx, overlapPx);
+	const stepPx = sizePx + overlap;
+	const trailingPx = Math.max(-overlap, 0) + resolveAvatarStackOutlinePx(sizePx);
+	const widthForColumns = (columnCount: number) => (columnCount * stepPx + trailingPx) * remScale;
+	if (totalCount <= 1 || widthForColumns(totalCount) <= availableWidthPx) {
+		return totalCount;
+	}
+	let visibleCount = totalCount - 1;
+	while (visibleCount > 1 && widthForColumns(visibleCount + 1) > availableWidthPx) {
+		visibleCount--;
+	}
+	return visibleCount;
+}
+
 export function resolveAvatarStackWidthRem(
 	totalCount: number,
 	sizePx: number,
