@@ -112,6 +112,7 @@ type VoiceSettingsUpdate = Partial<{
 	vadThreshold: number;
 	vadAutoSensitivity: boolean;
 	vadEnhanced: boolean;
+	remoteSpeakingThreshold: number;
 	deepFilterAttenLimDb: number;
 	deepFilterHighPassHz: number;
 	noiseGateOpenDb: number;
@@ -492,6 +493,7 @@ class VoiceSettings {
 	vadThreshold = 50;
 	vadAutoSensitivity = true;
 	vadEnhanced = true;
+	remoteSpeakingThreshold = 50;
 	deepFilterAttenLimDb = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.deepFilterAttenLimDb;
 	deepFilterHighPassHz = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.deepFilterHighPassHz;
 	noiseGateOpenDb = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.noiseGateOpenDb;
@@ -565,6 +567,7 @@ class VoiceSettings {
 				getVadThreshold: false,
 				getVadAutoSensitivity: false,
 				getVadEnhanced: false,
+				getRemoteSpeakingThreshold: false,
 				getNoiseSuppressionAdvancedSettings: false,
 				getLinuxAudioCaptureWorkaround: false,
 				getLinuxAudioCaptureOnlySpeakers: false,
@@ -686,6 +689,7 @@ class VoiceSettings {
 			'vadThreshold',
 			'vadAutoSensitivity',
 			'vadEnhanced',
+			'remoteSpeakingThreshold',
 			'deepFilterAttenLimDb',
 			'deepFilterHighPassHz',
 			'noiseGateOpenDb',
@@ -1009,6 +1013,10 @@ class VoiceSettings {
 		return this.vadEnhanced;
 	}
 
+	getRemoteSpeakingThreshold(): number {
+		return this.remoteSpeakingThreshold;
+	}
+
 	getNoiseSuppressionAdvancedSettings(): NoiseSuppressionAdvancedSettings {
 		return {
 			deepFilterAttenLimDb: this.deepFilterAttenLimDb,
@@ -1155,6 +1163,8 @@ class VoiceSettings {
 		if (validated.vadThreshold !== undefined) this.vadThreshold = validated.vadThreshold;
 		if (validated.vadAutoSensitivity !== undefined) this.vadAutoSensitivity = validated.vadAutoSensitivity;
 		if (validated.vadEnhanced !== undefined) this.vadEnhanced = validated.vadEnhanced;
+		if (validated.remoteSpeakingThreshold !== undefined)
+			this.remoteSpeakingThreshold = validated.remoteSpeakingThreshold;
 		if (validated.deepFilterAttenLimDb !== undefined) this.deepFilterAttenLimDb = validated.deepFilterAttenLimDb;
 		if (validated.deepFilterHighPassHz !== undefined) this.deepFilterHighPassHz = validated.deepFilterHighPassHz;
 		if (validated.noiseGateOpenDb !== undefined) this.noiseGateOpenDb = validated.noiseGateOpenDb;
@@ -1290,6 +1300,7 @@ class VoiceSettings {
 			vadThreshold: Math.max(0, Math.min(100, data.vadThreshold ?? this.vadThreshold)),
 			vadAutoSensitivity: data.vadAutoSensitivity ?? this.vadAutoSensitivity,
 			vadEnhanced: data.vadEnhanced ?? this.vadEnhanced,
+			remoteSpeakingThreshold: Math.max(0, Math.min(100, data.remoteSpeakingThreshold ?? this.remoteSpeakingThreshold)),
 			deepFilterAttenLimDb: clampNoiseSuppressionAdvancedSetting(
 				'deepFilterAttenLimDb',
 				data.deepFilterAttenLimDb ?? this.deepFilterAttenLimDb,

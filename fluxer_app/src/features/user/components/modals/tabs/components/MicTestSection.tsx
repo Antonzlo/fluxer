@@ -21,11 +21,15 @@ interface MicTestSectionProps {
 
 export const MicTestSection: React.FC<MicTestSectionProps> = observer(({settings}) => {
 	const {i18n} = useLingui();
-	const {isTesting, isStarting, level, start, stop} = useMicTest(settings);
+	const {isTesting, isStarting, level, gateMarker, start, stop} = useMicTest(settings);
 	return (
 		<div className={styles.bar} data-active={isTesting ? 'true' : 'false'} data-flx="user.mic-test-section.bar">
 			<div className={styles.meter} data-flx="user.mic-test-section.meter">
-				<AudioLevelMeter level={isTesting ? level : 0} data-flx="user.mic-test-section.audio-level-meter" />
+				<AudioLevelMeter
+					level={isTesting ? level : 0}
+					marker={isTesting ? gateMarker : null}
+					data-flx="user.mic-test-section.audio-level-meter"
+				/>
 			</div>
 
 			<Button

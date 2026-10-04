@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {createVoiceSoftClipNode} from '@app/features/voice/engine/VoiceSharedAudioContext';
+import type {VoiceInputLevel} from '@app/features/voice/utils/VoiceActivityGate';
 import {
 	type VoiceInputChannelCount,
 	type VoiceInputConfig,
@@ -25,6 +26,7 @@ interface CreateMicTestAudioGraphOptions {
 	outputGain: number;
 	playbackTarget: AudioNode;
 	playbackDelaySeconds: number;
+	onLevel?: (level: VoiceInputLevel) => void;
 }
 
 export function createMicTestAudioGraph({
@@ -36,10 +38,11 @@ export function createMicTestAudioGraph({
 	outputGain,
 	playbackTarget,
 	playbackDelaySeconds,
+	onLevel,
 }: CreateMicTestAudioGraphOptions): MicTestAudioGraph {
 	signal.throwIfAborted();
 	const audioContext = source.context as AudioContext;
-	const inputGraph = new VoiceInputGraph(audioContext, channelCount, resolveConfig);
+	const inputGraph = new VoiceInputGraph(audioContext, channelCount, resolveConfig, onLevel);
 	inputGraph.setSourceNode(sourceTrack, source);
 	const analyser = audioContext.createAnalyser();
 	const delay = audioContext.createDelay(Math.max(1, playbackDelaySeconds + 0.25));

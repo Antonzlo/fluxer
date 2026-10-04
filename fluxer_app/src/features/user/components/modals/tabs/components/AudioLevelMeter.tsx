@@ -7,6 +7,7 @@ import {useMemo} from 'react';
 
 interface AudioLevelMeterProps {
 	level: number;
+	marker?: number | null;
 }
 
 const BAR_COUNT = 20;
@@ -27,7 +28,12 @@ function makeActiveBarStyle(index: number): AudioLevelBarStyle {
 	};
 }
 
-export function AudioLevelMeter({level, className, ...rest}: AudioLevelMeterProps & HTMLAttributes<HTMLDivElement>) {
+export function AudioLevelMeter({
+	level,
+	marker,
+	className,
+	...rest
+}: AudioLevelMeterProps & HTMLAttributes<HTMLDivElement>) {
 	const bars = useMemo(() => {
 		const clampedLevel = Math.min(1, Math.max(0, level));
 		return Array.from({length: BAR_COUNT}, (_, index) => {
@@ -51,6 +57,13 @@ export function AudioLevelMeter({level, className, ...rest}: AudioLevelMeterProp
 					data-flx={`user.audio-level-meter.bar--${index}`}
 				/>
 			))}
+			{marker != null && (
+				<span
+					className={styles.marker}
+					style={{left: `${Math.min(1, Math.max(0, marker)) * 100}%`}}
+					data-flx="user.audio-level-meter.marker"
+				/>
+			)}
 		</div>
 	);
 }

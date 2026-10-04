@@ -335,7 +335,7 @@ export class VoiceEngineV2AppRemoteSpeakingAdapter {
 		}
 		handle.analyser.getFloatTimeDomainData(handle.samples);
 		const rms = computeTimeDomainRms(handle.samples);
-		const threshold = getRemoteSpeakingThresholdRms(VoiceSettings.getVadThreshold());
+		const threshold = getRemoteSpeakingThresholdRms(VoiceSettings.getRemoteSpeakingThreshold());
 		this.updateTransmitting(handle, rms, nowMs);
 		this.applyCommands(this.transition({type: 'remote.tick', identity: handle.identity, rms, threshold, nowMs}));
 		handle.nextTickAtMs = nowMs + REMOTE_SPEAKING_ANALYSER_INTERVAL_MS;

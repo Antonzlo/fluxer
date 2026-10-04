@@ -19,13 +19,16 @@ import {formatNoiseSuppressionAdvancedSignature} from '@app/features/voice/utils
 import NoiseSuppressionAvailability from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAvailability';
 import type {VoiceNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
 import {readRequestedNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionRuntime';
-import {resolveVoiceInputConfig} from '@app/features/voice/utils/VoiceInputProcessor';
+import {isVoiceActivityGateEnabled, resolveVoiceInputConfig} from '@app/features/voice/utils/VoiceInputProcessor';
 import {
 	applyContentHintToTrack,
 	resolveVoiceProcessing,
 	type VoiceProcessingMode,
 } from '@app/features/voice/utils/VoiceProcessingProfile';
-import {boostedVoiceVolumePercentToTrackVolume} from '@app/features/voice/utils/VoiceVolumeUtils';
+import {
+	boostedVoiceVolumePercentToTrackVolume,
+	inputVoiceVolumePercentToGain,
+} from '@app/features/voice/utils/VoiceVolumeUtils';
 import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 
 const logger = new Logger('useMicTest');
@@ -47,6 +50,14 @@ function readEffectiveNoiseSuppressionBackend(): VoiceNoiseSuppressionBackend {
 	return NoiseSuppressionAvailability.resolveEffectiveBackend(readRequestedNoiseSuppressionBackend());
 }
 
+const METER_MIN_DB = -60;
+const METER_MAX_DB = 0;
+
+function rmsToMeterLevel(rms: number): number {
+	const db = 20 * Math.log10(Math.max(rms, 1e-10));
+	return Math.max(0, Math.min(1, (db - METER_MIN_DB) / (METER_MAX_DB - METER_MIN_DB)));
+}
+
 function normalizeOutputDeviceId(deviceId: string): string {
 	return deviceId === 'default' ? '' : deviceId;
 }
@@ -56,6 +67,8 @@ export const useMicTest = (settings: MicTestSettings) => {
 	const [isStarting, setIsStarting] = useState(false);
 	const [level, setLevel] = useState(0);
 	const [peakLevel, setPeakLevel] = useState(0);
+	const [gateMarker, setGateMarker] = useState<number | null>(null);
+	const gateThresholdRmsRef = useRef<number | null>(null);
 	const inputLeaseRef = useRef<VoiceInputContextLease | null>(null);
 	const graphRef = useRef<MicTestAudioGraph | null>(null);
 	const playbackDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
@@ -114,10 +127,15 @@ export const useMicTest = (settings: MicTestSettings) => {
 			sumOfSquares += sample * sample;
 		}
 		const rms = Math.sqrt(sumOfSquares / timeDomainDataRef.current.length);
-		const MIN_DB = -60;
-		const MAX_DB = 0;
-		const db = 20 * Math.log10(Math.max(rms, 1e-10));
-		const normalized = Math.max(0, Math.min(1, (db - MIN_DB) / (MAX_DB - MIN_DB)));
+		const normalized = rmsToMeterLevel(rms);
+		const thresholdRms = gateThresholdRmsRef.current;
+		setGateMarker(
+			thresholdRms === null
+				? null
+				: Math.round(
+						rmsToMeterLevel(thresholdRms * inputVoiceVolumePercentToGain(VoiceSettings.getInputVolume())) * 100,
+					) / 100,
+		);
 		const nextPeak = Math.max(normalized, Math.max(0, peakLevelRef.current - 0.006));
 		peakLevelRef.current = nextPeak;
 		setLevel(normalized);
@@ -156,6 +174,8 @@ export const useMicTest = (settings: MicTestSettings) => {
 		inputLeaseRef.current = null;
 		timeDomainDataRef.current = null;
 		peakLevelRef.current = 0;
+		gateThresholdRmsRef.current = null;
+		setGateMarker(null);
 		setIsTesting(false);
 		setLevel(0);
 		setPeakLevel(0);
@@ -250,6 +270,9 @@ export const useMicTest = (settings: MicTestSettings) => {
 				outputGain: boostedVoiceVolumePercentToTrackVolume(settings.outputVolume),
 				playbackTarget,
 				playbackDelaySeconds: MIC_TEST_MONITOR_DELAY_SECONDS,
+				onLevel: (gateLevel) => {
+					gateThresholdRmsRef.current = isVoiceActivityGateEnabled() ? gateLevel.thresholdRms : null;
+				},
 			});
 			timeDomainDataRef.current = new Float32Array(graphRef.current.analyser.fftSize);
 			const audioElement = new Audio();
@@ -332,6 +355,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 		isStarting,
 		level,
 		peakLevel,
+		gateMarker,
 		monitorDelayMs: Math.round(MIC_TEST_MONITOR_DELAY_SECONDS * 1000),
 		start,
 		stop,

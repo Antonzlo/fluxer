@@ -64,6 +64,7 @@ type VoiceSettingsPatch = Partial<{
 	vadThreshold: number;
 	vadAutoSensitivity: boolean;
 	vadEnhanced: boolean;
+	remoteSpeakingThreshold: number;
 	deepFilterAttenLimDb: number;
 	deepFilterHighPassHz: number;
 	noiseGateOpenDb: number;
