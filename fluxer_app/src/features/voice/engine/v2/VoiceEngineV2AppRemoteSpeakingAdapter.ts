@@ -214,6 +214,7 @@ export class VoiceEngineV2AppRemoteSpeakingAdapter {
 				transmittingBelowSinceMs: null,
 			};
 			this.analysers.set(identity, handle);
+			VoiceTransmitting.setAnalysed(identity, true);
 			this.applyCommands(this.transition({type: 'remote.attach', identity, track: mediaStreamTrack}));
 			this.ensureAutoSchedule();
 			assert.ok(this.analysers.has(identity), 'attachIfApplicable post-condition: handle registered');
@@ -354,6 +355,7 @@ export class VoiceEngineV2AppRemoteSpeakingAdapter {
 
 	private disposeHandle(handle: AnalyserHandle): void {
 		VoiceTransmitting.set(handle.identity, false);
+		VoiceTransmitting.setAnalysed(handle.identity, false);
 		try {
 			handle.source.disconnect();
 		} catch (error) {

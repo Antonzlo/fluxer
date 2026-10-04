@@ -52,8 +52,16 @@ function resolveSelfMute({
 	return voiceState?.self_mute ?? !(participant?.isMicrophoneEnabled ?? true);
 }
 
+function isParticipantSpeakingByLevel(args: ResolveVoiceParticipantSpeakingArgs): boolean {
+	const {participant, isLocalConnection} = args;
+	if (!isLocalConnection && VoiceTransmitting.isAnalysed(participant?.identity)) {
+		return Boolean(participant?.isAudioLevelSpeaking);
+	}
+	return isVoiceEngineV2AppParticipantSpeaking(participant);
+}
+
 export function resolveVoiceParticipantSpeaking(args: ResolveVoiceParticipantSpeakingArgs): boolean {
-	if (!isVoiceEngineV2AppParticipantSpeaking(args.participant)) return false;
+	if (!isParticipantSpeakingByLevel(args)) return false;
 	if (resolveSelfMute(args)) return false;
 	if (args.permissionMuted) return false;
 	if (args.voiceState?.mute ?? false) return false;

@@ -4,6 +4,7 @@ import {makeAutoObservable} from 'mobx';
 
 class VoiceTransmitting {
 	private identities = new Set<string>();
+	private analysed = new Set<string>();
 
 	constructor() {
 		makeAutoObservable(this, {}, {autoBind: true});
@@ -11,6 +12,18 @@ class VoiceTransmitting {
 
 	isTransmitting(identity: string | null | undefined): boolean {
 		return identity != null && this.identities.has(identity);
+	}
+
+	isAnalysed(identity: string | null | undefined): boolean {
+		return identity != null && this.analysed.has(identity);
+	}
+
+	setAnalysed(identity: string, analysed: boolean): void {
+		if (this.analysed.has(identity) === analysed) return;
+		const next = new Set(this.analysed);
+		if (analysed) next.add(identity);
+		else next.delete(identity);
+		this.analysed = next;
 	}
 
 	set(identity: string, transmitting: boolean): void {
@@ -23,6 +36,7 @@ class VoiceTransmitting {
 
 	clear(): void {
 		if (this.identities.size > 0) this.identities = new Set();
+		if (this.analysed.size > 0) this.analysed = new Set();
 	}
 }
 

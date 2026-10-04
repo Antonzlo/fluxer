@@ -42,3 +42,24 @@ describe('voice participant transmitting indicator', () => {
 		expect(resolveVoiceParticipantDisplayState({...base, participant: {identity: 'user_2'}}).transmitting).toBe(false);
 	});
 });
+
+describe('remote speaking source', () => {
+	afterEach(() => VoiceTransmitting.clear());
+
+	it('ignores the server flag for a remote participant whose audio is analysed', () => {
+		VoiceTransmitting.setAnalysed('user_1', true);
+		const participant = {identity: 'user_1', isSpeaking: true, isAudioLevelSpeaking: false};
+		expect(resolveVoiceParticipantDisplayState({...base, participant}).speaking).toBe(false);
+		expect(
+			resolveVoiceParticipantDisplayState({...base, participant: {...participant, isAudioLevelSpeaking: true}})
+				.speaking,
+		).toBe(true);
+	});
+
+	it('falls back to the server flag without an analyser and for the local participant', () => {
+		const participant = {identity: 'user_1', isSpeaking: true, isAudioLevelSpeaking: false};
+		expect(resolveVoiceParticipantDisplayState({...base, participant}).speaking).toBe(true);
+		VoiceTransmitting.setAnalysed('user_1', true);
+		expect(resolveVoiceParticipantDisplayState({...base, participant, isLocalConnection: true}).speaking).toBe(true);
+	});
+});
