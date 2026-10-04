@@ -26,6 +26,7 @@ import {
 import {
 	buildManualVersionDownloadUrl,
 	DOWNLOAD_PAGE_URL,
+	FORK_WINDOWS_UPDATES,
 	getManualDownloadOptions,
 	getManualDownloadUrl,
 	MANUAL_DESKTOP_FORMATS,
@@ -193,12 +194,14 @@ async function sendVelopackApplyFailure(
 		phase: 'install',
 		message: `Fluxer could not finish installing version ${attempt.version}.`,
 	});
-	try {
-		const latest = await fetchManualLatest({forceRefresh: true});
-		sendManualUpdateAvailable(getMainWindow, context, latest);
-		return;
-	} catch (error) {
-		log.warn('Failed to resolve the installer download after a failed update apply', error);
+	if (!FORK_WINDOWS_UPDATES) {
+		try {
+			const latest = await fetchManualLatest({forceRefresh: true});
+			sendManualUpdateAvailable(getMainWindow, context, latest);
+			return;
+		} catch (error) {
+			log.warn('Failed to resolve the installer download after a failed update apply', error);
+		}
 	}
 	send(getMainWindow(), {
 		type: 'available',

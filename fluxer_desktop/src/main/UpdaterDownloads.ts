@@ -18,10 +18,19 @@ function getDesktopDownloadArch(arch: NodeJS.Architecture): DesktopDownloadArch 
 
 const DESKTOP_DOWNLOAD_ARCH = getDesktopDownloadArch(process.arch);
 const PKGS_BASE_URL = 'https://pkgs.fluxer.com';
-// The update feed is upstream's package server, which would replace this fork's build with upstream's.
-// Native updates stay off unless explicitly opted in.
-export const NATIVE_UPDATES_ENABLED = process.env.FLUXER_NATIVE_UPDATES === '1';
-export const UPDATE_BASE_URL = `${PKGS_BASE_URL}/desktop/${BUILD_CHANNEL}/${process.platform}/${DESKTOP_DOWNLOAD_ARCH}`;
+// Windows builds of this fork are Velopack packages published as GitHub releases of the fork.
+// Elsewhere the feed is upstream's package server, which would replace this fork's build with upstream's,
+// so native updates there stay off unless FLUXER_NATIVE_UPDATES=1 is set. FLUXER_NATIVE_UPDATES=0 turns them off everywhere.
+const FORK_WINDOWS_UPDATE_BASE_URL = 'https://github.com/Antonzlo/fluxer/releases/latest/download';
+const FORK_WINDOWS_RELEASE_DOWNLOAD_URL = 'https://github.com/Antonzlo/fluxer/releases/download';
+const FORK_WINDOWS_SETUP_FILE = 'Potryasker-win-Setup.exe';
+export const FORK_WINDOWS_UPDATES = process.platform === 'win32';
+
+export const NATIVE_UPDATES_ENABLED =
+	process.env.FLUXER_NATIVE_UPDATES === '1' || (FORK_WINDOWS_UPDATES && process.env.FLUXER_NATIVE_UPDATES !== '0');
+export const UPDATE_BASE_URL = FORK_WINDOWS_UPDATES
+	? FORK_WINDOWS_UPDATE_BASE_URL
+	: `${PKGS_BASE_URL}/desktop/${BUILD_CHANNEL}/${process.platform}/${DESKTOP_DOWNLOAD_ARCH}`;
 export const DOWNLOAD_PAGE_URL =
 	BUILD_CHANNEL === 'canary' ? 'https://canary.fluxer.app/download' : 'https://fluxer.app/download';
 
@@ -76,6 +85,9 @@ function isLinuxManualDesktopFormat(format: ManualDesktopFormat): format is Linu
 }
 
 export function buildManualVersionDownloadUrl(version: string, format: ManualDesktopFormat): string {
+	if (FORK_WINDOWS_UPDATES && format === 'setup') {
+		return `${FORK_WINDOWS_RELEASE_DOWNLOAD_URL}/v${version}/${FORK_WINDOWS_SETUP_FILE}`;
+	}
 	return `${UPDATE_BASE_URL}/${version}/${format}`;
 }
 

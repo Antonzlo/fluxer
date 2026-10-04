@@ -540,7 +540,10 @@ describe('Updater Windows apply failures', () => {
 		assert.equal(updater.events[1].phase, 'install');
 		assert.ok(updater.events[1].message.includes(PUBLISHED_VERSION));
 		assert.equal(updater.events[2].downloadStarted, false);
-		assert.equal(updater.events[2].downloadUrl, `${baseUrl}/setup`);
+		assert.equal(
+			updater.events[2].downloadUrl,
+			`https://github.com/Antonzlo/fluxer/releases/download/v${PUBLISHED_VERSION}/Potryasker-win-Setup.exe`,
+		);
 		assert.equal(updater.applyState.attempt.version, PUBLISHED_VERSION);
 	});
 
