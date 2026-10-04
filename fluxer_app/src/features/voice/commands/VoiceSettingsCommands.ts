@@ -64,6 +64,11 @@ type VoiceSettingsPatch = Partial<{
 	vadThreshold: number;
 	vadAutoSensitivity: boolean;
 	vadEnhanced: boolean;
+	deepFilterAttenLimDb: number;
+	deepFilterHighPassHz: number;
+	noiseGateOpenDb: number;
+	noiseGateCloseDb: number;
+	noiseGateHoldMs: number;
 	linuxAudioCaptureWorkaround: boolean;
 	linuxAudioCaptureOnlySpeakers: boolean;
 	linuxAudioCaptureOnlyDefaultSpeakers: boolean;

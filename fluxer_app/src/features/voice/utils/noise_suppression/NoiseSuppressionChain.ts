@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {Logger} from '@app/features/platform/utils/AppLogger';
+import VoiceSettings from '@app/features/voice/state/VoiceSettings';
 import {detectWasmSimdSupport} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
 import type * as NoiseSuppressionWorkletAssets from '@app/features/voice/utils/noise_suppression/NoiseSuppressionWorkletAssets';
 import {
@@ -9,9 +10,6 @@ import {
 } from '@app/features/voice/utils/noise_suppression/NoiseSuppressionWorkletTypes';
 
 const logger = new Logger('NoiseSuppressionChain');
-const NOISE_GATE_OPEN_THRESHOLD_DB = -41.6;
-const NOISE_GATE_CLOSE_THRESHOLD_DB = -47.6;
-const NOISE_GATE_HOLD_MS = 180;
 const NOISE_SUPPRESSION_STARTUP_TIMEOUT_MS = 8000;
 
 export interface NoiseSuppressionWorkletNode {
@@ -74,10 +72,11 @@ function buildProcessorOptions(
 	wasmBinary: ArrayBuffer | null,
 ): Record<string, unknown> {
 	if (backend === 'gate') {
+		const advanced = VoiceSettings.getNoiseSuppressionAdvancedSettings();
 		return {
-			openThreshold: NOISE_GATE_OPEN_THRESHOLD_DB,
-			closeThreshold: NOISE_GATE_CLOSE_THRESHOLD_DB,
-			holdMs: NOISE_GATE_HOLD_MS,
+			openThreshold: advanced.noiseGateOpenDb,
+			closeThreshold: Math.min(advanced.noiseGateCloseDb, advanced.noiseGateOpenDb),
+			holdMs: advanced.noiseGateHoldMs,
 			maxChannels: 1,
 		};
 	}

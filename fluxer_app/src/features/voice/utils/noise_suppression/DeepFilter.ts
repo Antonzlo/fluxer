@@ -3,6 +3,10 @@
 import {Logger} from '@app/features/platform/utils/AppLogger';
 import {acquireIdleVoiceInputContext, isVoiceInputSourceLive} from '@app/features/voice/engine/VoiceInputAudioContext';
 import VoiceSettings from '@app/features/voice/state/VoiceSettings';
+import {
+	formatNoiseSuppressionAdvancedSignature,
+	type NoiseSuppressionAdvancedSettings,
+} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
 import NoiseSuppressionAvailability, {
 	type NoiseSuppressionFailureReason,
 } from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAvailability';
@@ -18,10 +22,8 @@ const DEEP_FILTER_PROCESSOR_NAME = 'fluxer-deep-filter';
 const DEEP_FILTER_ASSET_IDLE_MS = 20_000;
 const DEEP_FILTER_ASSET_TOTAL_MS = 10 * 60_000;
 const DEEP_FILTER_BUILD_TIMEOUT_MS = 8000;
-const DEEP_FILTER_ATTEN_LIM_DB = 30;
 const DEEP_FILTER_INPUT_GAIN = 10;
 const DEEP_FILTER_OUTPUT_GAIN = 0.1;
-const DEEP_FILTER_HIGH_PASS_HZ = 60;
 const DEEP_FILTER_PREFETCH_IDLE_TIMEOUT_MS = 20_000;
 const DEEP_FILTER_PRIMED_TIMEOUT_MS = 500;
 const DEEP_FILTER_IDLE_DISPOSE_MS = 60_000;
@@ -367,7 +369,10 @@ function awaitDeepFilterPrimed(
 	});
 }
 
-async function createDeepFilterNode(context: AudioContext): Promise<DeepFilterNodeHandle> {
+async function createDeepFilterNode(
+	context: AudioContext,
+	advanced: NoiseSuppressionAdvancedSettings,
+): Promise<DeepFilterNodeHandle> {
 	const isClosed = () => context.state === 'closed';
 	if (isClosed()) throw new DOMException('Voice input AudioContext closed', 'AbortError');
 	const supportedSampleRates = getNoiseSuppressionBackendDescriptor('deep_filter').supportedSampleRates ?? [];
@@ -409,10 +414,10 @@ async function createDeepFilterNode(context: AudioContext): Promise<DeepFilterNo
 			processorOptions: {
 				wasmModule: assets.module,
 				modelBytes: assets.modelBytes,
-				attenLimDb: DEEP_FILTER_ATTEN_LIM_DB,
+				attenLimDb: advanced.deepFilterAttenLimDb,
 				inputGain: DEEP_FILTER_INPUT_GAIN,
 				outputGain: DEEP_FILTER_OUTPUT_GAIN,
-				highPassHz: DEEP_FILTER_HIGH_PASS_HZ,
+				highPassHz: advanced.deepFilterHighPassHz,
 			},
 		});
 		listen = listenToDeepFilterNode(node);
@@ -452,6 +457,7 @@ async function createDeepFilterNode(context: AudioContext): Promise<DeepFilterNo
 
 interface DeepFilterPoolEntry {
 	readonly build: Promise<DeepFilterNodeHandle>;
+	readonly tuning: string;
 	readonly stopWatchingContext: () => void;
 	holder: symbol | null;
 	idleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -485,8 +491,10 @@ function createPoolEntry(context: AudioContext, pool: Set<DeepFilterPoolEntry>):
 	const onStateChange = () => {
 		if (context.state === 'closed') disposePoolEntry(pool, entry);
 	};
+	const advanced = VoiceSettings.getNoiseSuppressionAdvancedSettings();
 	const entry: DeepFilterPoolEntry = {
-		build: createDeepFilterNode(context),
+		build: createDeepFilterNode(context, advanced),
+		tuning: formatNoiseSuppressionAdvancedSignature(advanced),
 		stopWatchingContext: () => context.removeEventListener('statechange', onStateChange),
 		holder: null,
 		idleTimer: undefined,
@@ -518,9 +526,18 @@ function releasePoolEntry(pool: Set<DeepFilterPoolEntry>, entry: DeepFilterPoolE
 	entry.idleTimer = setTimeout(() => disposePoolEntry(pool, entry), DEEP_FILTER_IDLE_DISPOSE_MS);
 }
 
+function readCurrentTuning(): string {
+	return formatNoiseSuppressionAdvancedSignature(VoiceSettings.getNoiseSuppressionAdvancedSettings());
+}
+
+function isReusableIdleEntry(entry: DeepFilterPoolEntry, tuning: string): boolean {
+	return entry.holder === null && !entry.faulted && entry.tuning === tuning;
+}
+
 export function hasIdleDeepFilterNode(context: BaseAudioContext): boolean {
+	const tuning = readCurrentTuning();
 	for (const entry of getDeepFilterPool(context)) {
-		if (entry.holder === null && !entry.faulted) return true;
+		if (isReusableIdleEntry(entry, tuning)) return true;
 	}
 	return false;
 }
@@ -533,7 +550,11 @@ export async function acquireDeepFilterNode(
 	await loadDeepFilterAssets(signal);
 	signal.throwIfAborted();
 	const pool = getDeepFilterPool(context);
-	const idle = [...pool].find((candidate) => candidate.holder === null && !candidate.faulted);
+	const tuning = readCurrentTuning();
+	for (const stale of [...pool]) {
+		if (stale.holder === null && stale.tuning !== tuning) disposePoolEntry(pool, stale);
+	}
+	const idle = [...pool].find((candidate) => isReusableIdleEntry(candidate, tuning));
 	const entry = idle ?? createPoolEntry(context, pool);
 	const token = Symbol('deep-filter-lease');
 	entry.holder = token;

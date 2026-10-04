@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import Keybind from '@app/features/input/state/InputKeybind';
 import {handleMediaPermissionBlocked} from '@app/features/permissions/system/commands/MacPermissionsModalCommands';
 import MediaPermission from '@app/features/permissions/system/state/MediaPermission';
 import {ensureMacPermission} from '@app/features/permissions/system/utils/MacPermissionGate';
@@ -12,16 +13,18 @@ import {
 	acquireIdleVoiceInputSource,
 	type VoiceInputContextLease,
 } from '@app/features/voice/engine/VoiceInputAudioContext';
+import VoiceSettings from '@app/features/voice/state/VoiceSettings';
 import {beginMicrophoneSession} from '@app/features/voice/utils/noise_suppression/DeepFilter';
+import {formatNoiseSuppressionAdvancedSignature} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
 import NoiseSuppressionAvailability from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAvailability';
 import type {VoiceNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
 import {readRequestedNoiseSuppressionBackend} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionRuntime';
+import {resolveVoiceInputConfig} from '@app/features/voice/utils/VoiceInputProcessor';
 import {
 	applyContentHintToTrack,
 	resolveVoiceProcessing,
 	type VoiceProcessingMode,
 } from '@app/features/voice/utils/VoiceProcessingProfile';
-import {resolveVoiceInputConfig} from '@app/features/voice/utils/VoiceInputProcessor';
 import {boostedVoiceVolumePercentToTrackVolume} from '@app/features/voice/utils/VoiceVolumeUtils';
 import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 
@@ -70,6 +73,12 @@ export const useMicTest = (settings: MicTestSettings) => {
 		NoiseSuppressionAvailability.subscribe,
 		readEffectiveNoiseSuppressionBackend,
 	);
+	const noiseSuppressionTuning = formatNoiseSuppressionAdvancedSignature(
+		VoiceSettings.getNoiseSuppressionAdvancedSettings(),
+	);
+	const vadThreshold = VoiceSettings.getVadThreshold();
+	const vadAutoSensitivity = VoiceSettings.getVadAutoSensitivity();
+	const transmitMode = Keybind.transmitMode;
 	const captureSignature = useMemo(
 		() =>
 			JSON.stringify({
@@ -80,6 +89,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 				voiceProcessingMode: settings.voiceProcessingMode,
 				stereoMicrophone: settings.stereoMicrophone,
 				noiseSuppressionBackend,
+				noiseSuppressionTuning,
 			}),
 		[
 			settings.autoGainControl,
@@ -89,6 +99,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 			settings.stereoMicrophone,
 			settings.voiceProcessingMode,
 			noiseSuppressionBackend,
+			noiseSuppressionTuning,
 		],
 	);
 	const updateLevel = useCallback(() => {
@@ -299,7 +310,7 @@ export const useMicTest = (settings: MicTestSettings) => {
 			void graphRef.current.configure();
 			graphRef.current.outputGain.gain.value = boostedVoiceVolumePercentToTrackVolume(settings.outputVolume);
 		}
-	}, [isTesting, settings.inputVolume, settings.outputVolume]);
+	}, [isTesting, settings.inputVolume, settings.outputVolume, vadThreshold, vadAutoSensitivity, transmitMode]);
 	useEffect(() => {
 		if (!isTesting) {
 			activeCaptureSignatureRef.current = captureSignature;

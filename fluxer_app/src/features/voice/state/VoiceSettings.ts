@@ -10,6 +10,11 @@ import type {
 	ScreenShareScalabilityModePreference,
 } from '@app/features/voice/utils/CodecCapabilityDetector';
 import {
+	clampNoiseSuppressionAdvancedSetting,
+	NOISE_SUPPRESSION_ADVANCED_DEFAULTS,
+	type NoiseSuppressionAdvancedSettings,
+} from '@app/features/voice/utils/noise_suppression/NoiseSuppressionAdvancedSettings';
+import {
 	isVoiceNoiseSuppressionBackend,
 	type VoiceNoiseSuppressionBackend,
 } from '@app/features/voice/utils/noise_suppression/NoiseSuppressionBackends';
@@ -107,6 +112,11 @@ type VoiceSettingsUpdate = Partial<{
 	vadThreshold: number;
 	vadAutoSensitivity: boolean;
 	vadEnhanced: boolean;
+	deepFilterAttenLimDb: number;
+	deepFilterHighPassHz: number;
+	noiseGateOpenDb: number;
+	noiseGateCloseDb: number;
+	noiseGateHoldMs: number;
 	linuxAudioCaptureWorkaround: boolean;
 	linuxAudioCaptureOnlySpeakers: boolean;
 	linuxAudioCaptureOnlyDefaultSpeakers: boolean;
@@ -482,6 +492,11 @@ class VoiceSettings {
 	vadThreshold = 50;
 	vadAutoSensitivity = true;
 	vadEnhanced = true;
+	deepFilterAttenLimDb = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.deepFilterAttenLimDb;
+	deepFilterHighPassHz = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.deepFilterHighPassHz;
+	noiseGateOpenDb = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.noiseGateOpenDb;
+	noiseGateCloseDb = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.noiseGateCloseDb;
+	noiseGateHoldMs = NOISE_SUPPRESSION_ADVANCED_DEFAULTS.noiseGateHoldMs;
 	linuxAudioCaptureWorkaround = false;
 	linuxAudioCaptureOnlySpeakers = true;
 	linuxAudioCaptureOnlyDefaultSpeakers = true;
@@ -550,6 +565,7 @@ class VoiceSettings {
 				getVadThreshold: false,
 				getVadAutoSensitivity: false,
 				getVadEnhanced: false,
+				getNoiseSuppressionAdvancedSettings: false,
 				getLinuxAudioCaptureWorkaround: false,
 				getLinuxAudioCaptureOnlySpeakers: false,
 				getLinuxAudioCaptureOnlyDefaultSpeakers: false,
@@ -670,6 +686,11 @@ class VoiceSettings {
 			'vadThreshold',
 			'vadAutoSensitivity',
 			'vadEnhanced',
+			'deepFilterAttenLimDb',
+			'deepFilterHighPassHz',
+			'noiseGateOpenDb',
+			'noiseGateCloseDb',
+			'noiseGateHoldMs',
 			'linuxAudioCaptureWorkaround',
 			'linuxAudioCaptureOnlySpeakers',
 			'linuxAudioCaptureOnlyDefaultSpeakers',
@@ -988,6 +1009,16 @@ class VoiceSettings {
 		return this.vadEnhanced;
 	}
 
+	getNoiseSuppressionAdvancedSettings(): NoiseSuppressionAdvancedSettings {
+		return {
+			deepFilterAttenLimDb: this.deepFilterAttenLimDb,
+			deepFilterHighPassHz: this.deepFilterHighPassHz,
+			noiseGateOpenDb: this.noiseGateOpenDb,
+			noiseGateCloseDb: this.noiseGateCloseDb,
+			noiseGateHoldMs: this.noiseGateHoldMs,
+		};
+	}
+
 	getLinuxAudioCaptureWorkaround(): boolean {
 		return this.linuxAudioCaptureWorkaround;
 	}
@@ -1124,6 +1155,11 @@ class VoiceSettings {
 		if (validated.vadThreshold !== undefined) this.vadThreshold = validated.vadThreshold;
 		if (validated.vadAutoSensitivity !== undefined) this.vadAutoSensitivity = validated.vadAutoSensitivity;
 		if (validated.vadEnhanced !== undefined) this.vadEnhanced = validated.vadEnhanced;
+		if (validated.deepFilterAttenLimDb !== undefined) this.deepFilterAttenLimDb = validated.deepFilterAttenLimDb;
+		if (validated.deepFilterHighPassHz !== undefined) this.deepFilterHighPassHz = validated.deepFilterHighPassHz;
+		if (validated.noiseGateOpenDb !== undefined) this.noiseGateOpenDb = validated.noiseGateOpenDb;
+		if (validated.noiseGateCloseDb !== undefined) this.noiseGateCloseDb = validated.noiseGateCloseDb;
+		if (validated.noiseGateHoldMs !== undefined) this.noiseGateHoldMs = validated.noiseGateHoldMs;
 		if (validated.linuxAudioCaptureWorkaround !== undefined)
 			this.linuxAudioCaptureWorkaround = validated.linuxAudioCaptureWorkaround;
 		if (validated.linuxAudioCaptureOnlySpeakers !== undefined)
@@ -1254,6 +1290,26 @@ class VoiceSettings {
 			vadThreshold: Math.max(0, Math.min(100, data.vadThreshold ?? this.vadThreshold)),
 			vadAutoSensitivity: data.vadAutoSensitivity ?? this.vadAutoSensitivity,
 			vadEnhanced: data.vadEnhanced ?? this.vadEnhanced,
+			deepFilterAttenLimDb: clampNoiseSuppressionAdvancedSetting(
+				'deepFilterAttenLimDb',
+				data.deepFilterAttenLimDb ?? this.deepFilterAttenLimDb,
+			),
+			deepFilterHighPassHz: clampNoiseSuppressionAdvancedSetting(
+				'deepFilterHighPassHz',
+				data.deepFilterHighPassHz ?? this.deepFilterHighPassHz,
+			),
+			noiseGateOpenDb: clampNoiseSuppressionAdvancedSetting(
+				'noiseGateOpenDb',
+				data.noiseGateOpenDb ?? this.noiseGateOpenDb,
+			),
+			noiseGateCloseDb: clampNoiseSuppressionAdvancedSetting(
+				'noiseGateCloseDb',
+				data.noiseGateCloseDb ?? this.noiseGateCloseDb,
+			),
+			noiseGateHoldMs: clampNoiseSuppressionAdvancedSetting(
+				'noiseGateHoldMs',
+				data.noiseGateHoldMs ?? this.noiseGateHoldMs,
+			),
 			linuxAudioCaptureWorkaround: data.linuxAudioCaptureWorkaround ?? this.linuxAudioCaptureWorkaround,
 			linuxAudioCaptureOnlySpeakers: data.linuxAudioCaptureOnlySpeakers ?? this.linuxAudioCaptureOnlySpeakers,
 			linuxAudioCaptureOnlyDefaultSpeakers:
