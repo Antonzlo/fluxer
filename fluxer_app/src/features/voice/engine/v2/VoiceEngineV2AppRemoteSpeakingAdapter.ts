@@ -28,11 +28,14 @@ import {
 	setRemoteVoicePlaybackBoost,
 } from '@app/features/voice/state/RemoteVoicePlaybackBoost';
 import VoiceSettings from '@app/features/voice/state/VoiceSettings';
+import VoiceTransmitting from '@app/features/voice/state/VoiceTransmitting';
 import type {Participant, RemoteAudioTrack, RemoteTrack, RemoteTrackPublication, Room} from 'livekit-client';
 
 const logger = new Logger('VoiceEngineV2AppRemoteSpeakingAdapter');
 export const REMOTE_SPEAKING_ANALYSER_INTERVAL_MS = 50;
 export const REMOTE_SPEAKING_ANALYSER_HANDLES_CAP = 256;
+export const REMOTE_TRANSMITTING_MIN_RMS = 0.0002;
+export const REMOTE_TRANSMITTING_RELEASE_MS = 400;
 
 export function computeTimeDomainRms(samples: Float32Array): number {
 	if (samples.length === 0) return 0;
@@ -51,6 +54,7 @@ interface AnalyserHandle {
 	analyser: AnalyserNode;
 	samples: Float32Array<ArrayBuffer>;
 	nextTickAtMs: number;
+	transmittingBelowSinceMs: number | null;
 }
 
 export interface VoiceEngineV2AppRemoteSpeakingAdapterOptions {
@@ -207,8 +211,10 @@ export class VoiceEngineV2AppRemoteSpeakingAdapter {
 				analyser,
 				samples: new Float32Array(new ArrayBuffer(analyser.fftSize * Float32Array.BYTES_PER_ELEMENT)),
 				nextTickAtMs: this.nowMs() + REMOTE_SPEAKING_ANALYSER_INTERVAL_MS,
+				transmittingBelowSinceMs: null,
 			};
 			this.analysers.set(identity, handle);
+			VoiceTransmitting.setAnalysed(identity, true);
 			this.applyCommands(this.transition({type: 'remote.attach', identity, track: mediaStreamTrack}));
 			this.ensureAutoSchedule();
 			assert.ok(this.analysers.has(identity), 'attachIfApplicable post-condition: handle registered');
@@ -330,11 +336,26 @@ export class VoiceEngineV2AppRemoteSpeakingAdapter {
 		handle.analyser.getFloatTimeDomainData(handle.samples);
 		const rms = computeTimeDomainRms(handle.samples);
 		const threshold = getRemoteSpeakingThresholdRms(VoiceSettings.getVadThreshold());
+		this.updateTransmitting(handle, rms, nowMs);
 		this.applyCommands(this.transition({type: 'remote.tick', identity: handle.identity, rms, threshold, nowMs}));
 		handle.nextTickAtMs = nowMs + REMOTE_SPEAKING_ANALYSER_INTERVAL_MS;
 	}
 
+	private updateTransmitting(handle: AnalyserHandle, rms: number, nowMs: number): void {
+		if (rms >= REMOTE_TRANSMITTING_MIN_RMS) {
+			handle.transmittingBelowSinceMs = null;
+			VoiceTransmitting.set(handle.identity, true);
+			return;
+		}
+		handle.transmittingBelowSinceMs ??= nowMs;
+		if (nowMs - handle.transmittingBelowSinceMs >= REMOTE_TRANSMITTING_RELEASE_MS) {
+			VoiceTransmitting.set(handle.identity, false);
+		}
+	}
+
 	private disposeHandle(handle: AnalyserHandle): void {
+		VoiceTransmitting.set(handle.identity, false);
+		VoiceTransmitting.setAnalysed(handle.identity, false);
 		try {
 			handle.source.disconnect();
 		} catch (error) {

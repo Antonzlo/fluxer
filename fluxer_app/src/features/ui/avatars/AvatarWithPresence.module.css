@@ -12,6 +12,12 @@
 	outline-color: #22c55e;
 }
 
+.containerTransmitting {
+	outline-style: solid;
+	outline-width: min(0.125rem, 8cqi);
+	outline-color: color-mix(in srgb, #22c55e 40%, transparent);
+}
+
 .voiceIndicatorIcon {
 	display: block;
 	width: 66%;
