@@ -19,12 +19,14 @@ export interface VoiceMediaGraphTrackInfo {
 	width: number;
 	height: number;
 	fps: number;
+	codec?: string;
 }
 
 export interface VoiceMediaGraphPartialTrackInfo {
 	width?: number;
 	height?: number;
 	fps?: number;
+	codec?: string;
 }
 
 export interface VoiceMediaGraphNativeStatsTarget {
@@ -103,7 +105,9 @@ function trackInfoFromPartial(partial: VoiceMediaGraphPartialTrackInfo | null): 
 	if (!partial) return null;
 	if (!isPositiveDimension(partial.width)) return null;
 	if (!isPositiveDimension(partial.height)) return null;
-	return {width: partial.width, height: partial.height, fps: Math.round(partial.fps ?? 0)};
+	const info: VoiceMediaGraphTrackInfo = {width: partial.width, height: partial.height, fps: Math.round(partial.fps ?? 0)};
+	if (partial.codec) info.codec = partial.codec;
+	return info;
 }
 
 export function mergeVoiceMediaGraphTrackInfo(
@@ -115,6 +119,8 @@ export function mergeVoiceMediaGraphTrackInfo(
 		height: primary?.height ?? fallback?.height,
 		fps: isPositiveFrameRate(primary?.fps) ? primary?.fps : fallback?.fps,
 	};
+	const codec = primary?.codec ?? fallback?.codec;
+	if (codec) merged.codec = codec;
 	return trackInfoFromPartial(merged);
 }
 
@@ -154,6 +160,7 @@ function perTrackStatsToObservation(track: VoiceEngineV2PerTrackStats): VoiceMed
 		sourceFps: positiveOrNull(track.sourceFramesPerSecond),
 		sourceWidth: positiveOrNull(track.sourceFrameWidth),
 		sourceHeight: positiveOrNull(track.sourceFrameHeight),
+		codec: normalizeId(track.codec),
 	};
 }
 
@@ -197,6 +204,8 @@ function observationToPartialTrackInfo(
 		info.height = height;
 	}
 	if (isPositiveFrameRate(fps)) info.fps = fps;
+	const codec = normalizeId(observation.codec);
+	if (codec) info.codec = codec;
 	return info.width !== undefined || info.fps !== undefined ? info : null;
 }
 

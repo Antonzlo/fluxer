@@ -107,6 +107,7 @@ import {
 } from '@app/features/voice/components/voice_participant_tile/shared';
 import {WatchStreamOverlay} from '@app/features/voice/components/voice_participant_tile/WatchStreamOverlay';
 import MediaEngine, {useMediaEngineVersion, useVoiceEngineV2Model} from '@app/features/voice/engine/MediaEngineFacade';
+import ScreenShareCodecNegotiation from '@app/features/voice/engine/ScreenShareCodecNegotiation';
 import ScreenSharePublicationMigration from '@app/features/voice/engine/ScreenSharePublicationMigration';
 import {useStoreVersion} from '@app/features/voice/engine/Store';
 import {
@@ -558,7 +559,10 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 			participantIdentity: identity,
 		},
 	);
-	const ownTargetInfo: StreamInfoPillQuality | null = committedTarget === null ? null : {target: committedTarget};
+	const ownTargetInfo: StreamInfoPillQuality | null =
+		committedTarget === null
+			? null
+			: {target: committedTarget, codec: ScreenShareCodecNegotiation.getLocalPublishedCodec() ?? undefined};
 	const trackInfo = isOwnScreenShare ? ownTargetInfo : capturedTrackInfo;
 	const isPublicationDesired = publication?.isDesired ?? publication?.isSubscribed ?? false;
 	useScreenShareWatchFailure({

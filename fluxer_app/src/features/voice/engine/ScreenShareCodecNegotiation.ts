@@ -365,6 +365,11 @@ class ScreenShareCodecNegotiation {
 		return this.selectedCodec;
 	}
 
+	getLocalPublishedCodec(): VideoCodec | null {
+		const publication = this.getLocalScreenSharePublication() as {options?: {videoCodec?: VideoCodec}} | null;
+		return publication?.options?.videoCodec ?? this.selectedCodec;
+	}
+
 	getLocalCodecAdvertisements(): Array<FluxerCodecAdvertisement> {
 		if (this.localCodecs.length === 0) return buildLocalCodecAdvertisements();
 		return [...this.localCodecs];

@@ -24,6 +24,7 @@ export interface VoiceMediaGraphStatsTrackObservation {
 	sourceFps: number | null;
 	sourceWidth: number | null;
 	sourceHeight: number | null;
+	codec?: string | null;
 }
 
 export interface VoiceMediaGraphStatsEntry {

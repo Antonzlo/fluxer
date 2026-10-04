@@ -30,9 +30,25 @@ const RESOLUTION_LABELS: Record<ResolutionHeight, string> = {
 	2160: '4K',
 };
 
+const CODEC_PILL_LABELS: Record<string, string> = {
+	av1: 'AV1',
+	av1x: 'AV1',
+	vp9: 'VP9',
+	vp8: 'VP8',
+	h264: 'H.264',
+	h265: 'H.265',
+	hevc: 'H.265',
+};
+
+function formatCodecPillLabel(codec: string | undefined): string | null {
+	if (!codec) return null;
+	const name = codec.replace(/^video\//i, '').toLowerCase();
+	return CODEC_PILL_LABELS[name] ?? name.toUpperCase();
+}
+
 type StreamInfoPillTone = 'default' | 'voice_tile';
 
-export type StreamInfoPillQuality = StreamTrackInfo | {target: ScreenShareTarget};
+export type StreamInfoPillQuality = StreamTrackInfo | {target: ScreenShareTarget; codec?: string};
 
 function getClosestResolutionHeight(height: number) {
 	let closest: ResolutionHeight = RESOLUTION_HEIGHTS[0];
@@ -65,14 +81,20 @@ export function StreamInfoPill({
 	const {i18n} = useLingui();
 	const labelText = useMemo(() => {
 		if ('target' in info) {
-			return i18n._(RESOLUTION_WITH_FPS_DESCRIPTOR, {
+			const targetText = i18n._(RESOLUTION_WITH_FPS_DESCRIPTOR, {
 				resolution: formatScreenShareTargetLabel(i18n, info.target),
 				fps: i18n.number(info.target.frameRate),
 			});
+			const targetCodecText = formatCodecPillLabel(info.codec);
+			return targetCodecText ? `${targetText} · ${targetCodecText}` : targetText;
 		}
 		const resolutionText = RESOLUTION_LABELS[getClosestResolutionHeight(info.height)];
-		if (!Number.isFinite(info.fps) || info.fps <= 0) return resolutionText;
-		return i18n._(RESOLUTION_WITH_FPS_DESCRIPTOR, {resolution: resolutionText, fps: i18n.number(info.fps)});
+		const baseText =
+			!Number.isFinite(info.fps) || info.fps <= 0
+				? resolutionText
+				: i18n._(RESOLUTION_WITH_FPS_DESCRIPTOR, {resolution: resolutionText, fps: i18n.number(info.fps)});
+		const codecText = formatCodecPillLabel(info.codec);
+		return codecText ? `${baseText} · ${codecText}` : baseText;
 	}, [info, i18n.locale]);
 	return (
 		<div
