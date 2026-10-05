@@ -4,6 +4,7 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
 const FAILURES_BEFORE_PROMPT = 3;
 const ERR_ABORTED = -3;
+const HTTP_SERVER_ERROR_MIN = 500;
 
 export interface AppLoadFailure {
 	errorCode: number;
@@ -52,6 +53,7 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	const setTimer = options.setTimer ?? setTimeout;
 	const clearTimer = options.clearTimer ?? clearTimeout;
 	let appUrl = options.appUrl;
+	let serverErrorUrl: string | null = null;
 	let attempt = 0;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	const cancelTimer = () => {
@@ -62,7 +64,7 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	};
 	const load = (reason: string) => {
 		if (webContents.isDestroyed()) return;
-		webContents.loadURL(appUrl).catch((error: unknown) => {
+		webContents.loadURL(serverErrorUrl ?? appUrl).catch((error: unknown) => {
 			const errorCode = getLoadErrorCode(error);
 			if (errorCode !== null && !isRetryableLoadError(errorCode)) {
 				logger.info('Ignoring non-retryable app load rejection', {reason, errorCode});
@@ -89,6 +91,7 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	const reset = () => {
 		cancelTimer();
 		attempt = 0;
+		serverErrorUrl = null;
 	};
 	const fallBackFromMigratedOrigin = (failedUrl: string, detail: Record<string, unknown>): boolean => {
 		const fallbackUrl = options.getFallbackUrl(failedUrl);
@@ -102,6 +105,13 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	return {
 		start() {
 			webContents.on('did-navigate', (_event, url, httpResponseCode) => {
+				if (httpResponseCode >= HTTP_SERVER_ERROR_MIN && options.isTrustedUrl(url)) {
+					options.onCommitted();
+					if (fallBackFromMigratedOrigin(url, {httpResponseCode})) return;
+					serverErrorUrl = url;
+					schedule('http-server-error', {httpResponseCode, url});
+					return;
+				}
 				reset();
 				options.onCommitted();
 				if (httpResponseCode >= 400) {
