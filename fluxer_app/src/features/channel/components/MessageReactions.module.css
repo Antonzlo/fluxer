@@ -56,10 +56,11 @@
 
 .emoji {
 	height: 1.25rem;
-	width: 1.25rem;
+	width: auto;
 	margin: 0.125rem 0;
 	min-height: auto;
-	min-width: auto;
+	min-width: 1.25rem;
+	max-width: 6.25rem;
 	object-fit: contain;
 	display: block;
 	flex-shrink: 0;
