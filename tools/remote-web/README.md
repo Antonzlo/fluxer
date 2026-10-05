@@ -16,7 +16,16 @@ desktop / browser -> localhost:8773 (edge.mjs) --/api, /gateway, /media--> https
 The edge rewrites the discovery document so `api`, `gateway` and `media` point at `localhost:8773`, and rewrites the
 `Host` and `Origin` headers on the way to the server. No server configuration change is needed.
 
-## Run it (Windows, PowerShell)
+## Quick start
+
+```
+pnpm dev:remote <server-host> [wss://<livekit-host> https://<livekit-host>]
+```
+
+This runs steps 1 to 3 below and stops all three on Ctrl+C. Then do step 4 for the desktop app, or open
+`http://localhost:8773` in a browser.
+
+## Run it by hand (Windows, PowerShell)
 
 Needs Node, pnpm, Rust with the `wasm32-unknown-unknown` target, `wasm-bindgen`, and an LLVM `clang` with a wasm32
 backend.
