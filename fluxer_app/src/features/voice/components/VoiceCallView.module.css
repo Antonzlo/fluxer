@@ -1568,12 +1568,3 @@
 	margin-right: 0.25rem;
 }
 
-:global([data-voice-popout-window='true']) .voiceRoot {
-	--voice-hud-opacity: 1;
-	--voice-hud-pointer-events: auto;
-}
-
-:global([data-voice-popout-window='true']) .lkParticipantTile .tileControlPill {
-	opacity: 1;
-	pointer-events: auto;
-}

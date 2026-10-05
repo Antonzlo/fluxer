@@ -24,16 +24,15 @@
 	--vc-settings-material-bg: #000;
 	--vc-settings-material-filter: none;
 
-	display: grid;
-	grid-auto-flow: column;
-	grid-auto-columns: max-content;
+	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: center;
 	position: relative;
 	isolation: isolate;
 	box-sizing: border-box;
 	gap: var(--vc-button-gap);
-	max-width: calc(100vw - 2rem);
+	max-width: 100%;
 	padding: var(--vc-container-padding);
 	border: 0.0625rem solid var(--vc-surface-border);
 	border-radius: calc(var(--vc-button-radius) + var(--vc-container-padding) + 0.125rem);
