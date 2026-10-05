@@ -34,7 +34,11 @@ import {
 	ExperimentDeliveryConfigUpdateRequest,
 } from '@fluxer/schema/src/domains/experiment/ExperimentSchemas';
 import {GuildMemberResponse} from '@fluxer/schema/src/domains/guild/GuildMemberSchemas';
-import {InstanceRegistrationModeSchema} from '@fluxer/schema/src/domains/instance/InstanceSchemas';
+import {
+	AccountIdentityModeSchema,
+	InstanceRegistrationModeSchema,
+	TagStyleSchema,
+} from '@fluxer/schema/src/domains/instance/InstanceSchemas';
 import {MessageResponseSchema} from '@fluxer/schema/src/domains/message/MessageResponseSchemas';
 import {GiftCodeDurationTypeSchema} from '@fluxer/schema/src/domains/premium/GiftCodeSchemas';
 import {ChannelTypeSchema} from '@fluxer/schema/src/primitives/ChannelValidators';
@@ -228,10 +232,20 @@ export const ListReportsQuery = z.object({
 
 export type ListReportsQuery = z.infer<typeof ListReportsQuery>;
 
+const ReportResolutionEnum = createNamedStringLiteralUnion(
+	[
+		['actioned', 'actioned', 'The report was valid and action was taken'],
+		['no_violation', 'no_violation', 'The report was reviewed and no violation was found'],
+		['duplicate', 'duplicate', 'The report repeats one that was already handled'],
+	],
+	'How the report was resolved',
+);
+
 export const UpdateReportRequest = z.object({
 	status: z.literal('resolved').describe('The status to move the report to'),
 	public_comment: createStringType(0, 512).optional().describe('Public comment to include with the resolution'),
 	notify_reporter: z.boolean().default(true).describe('Whether to notify the reporter by system DM and email'),
+	resolution: ReportResolutionEnum.optional().describe('How the report was resolved'),
 });
 
 export type UpdateReportRequest = z.infer<typeof UpdateReportRequest>;
@@ -294,6 +308,13 @@ export const BanIpRequest = z.object({
 	ip: createStringType(1, 45)
 		.refine((value) => IpOrCidrType.safeParse(value).success, 'Must be a valid IPv4/IPv6 address or CIDR range')
 		.describe('IPv4/IPv6 address or CIDR range to ban'),
+	duration_hours: z
+		.number()
+		.int()
+		.min(0)
+		.max(8760)
+		.optional()
+		.describe('Hours until the ban expires and its entry is removed. Omit it or use 0 for a permanent ban.'),
 });
 
 export type BanIpRequest = z.infer<typeof BanIpRequest>;
@@ -333,13 +354,13 @@ export const BanUrlRequest = z.object({
 export type BanUrlRequest = z.infer<typeof BanUrlRequest>;
 
 export const BanUrlDomainRequest = z.object({
-	domain: createStringType(1, 253)
-		.refine(
-			(v) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(v),
-			'Must be a valid domain',
-		)
-		.describe('Domain to ban (e.g. example.com)'),
-	match_subdomains: z.boolean().default(true).describe('If true, any subdomain rooted at this domain is also banned'),
+	domain: createStringType(1, 253).describe(
+		'Domain to ban (e.g. example.com), or a pattern whose leftmost label contains * under a registrable domain (e.g. *shop*.example.com). Internationalized names are stored in ASCII form.',
+	),
+	match_subdomains: z
+		.boolean()
+		.default(true)
+		.describe('If true, any subdomain rooted at this domain, or at a host the pattern matches, is also banned'),
 	category: createStringType(1, 64).optional().describe('Category / source slug (defaults to "manual")'),
 	severity: z
 		.number()
@@ -639,6 +660,12 @@ const InstanceIntegrationsResponse = z.object({
 	}),
 });
 
+const InstanceAccountIdentityConfigResponse = z.object({
+	mode: AccountIdentityModeSchema.describe('Sign-in method in effect on this instance'),
+	locked: z.boolean().describe('Whether the sign-in method can no longer change'),
+	tag_style: TagStyleSchema.describe('How usernames are tagged'),
+});
+
 export const InstanceConfigResponse = z.object({
 	sso: SsoConfigResponse,
 	gateway_rollout: GatewayRolloutConfigResponse,
@@ -649,6 +676,7 @@ export const InstanceConfigResponse = z.object({
 	experiment_delivery: ExperimentDeliveryConfigResponse,
 	registration: InstanceRegistrationResponse,
 	self_hosted: z.boolean(),
+	account_identity: InstanceAccountIdentityConfigResponse,
 	app_public: AppPublicConfigResponse,
 	policy: InstancePolicyResponse,
 	integrations: InstanceIntegrationsResponse,
@@ -1072,6 +1100,12 @@ export const AuditLogsListResponseSchema = z.object({
 export type AuditLogsListResponse = z.infer<typeof AuditLogsListResponseSchema>;
 export const BanCheckResponseSchema = z.object({
 	banned: z.boolean(),
+	expires_at: z
+		.string()
+		.nullable()
+		.describe(
+			'ISO 8601 timestamp when the matching ban expires. Null when the ban is permanent, when nothing matches, and on every blocklist other than ip.',
+		),
 });
 export const BulkJobResponse = z.object({
 	job_id: SnowflakeStringType,

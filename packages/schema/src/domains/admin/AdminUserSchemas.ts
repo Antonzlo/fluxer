@@ -247,20 +247,6 @@ export const ClearUserFieldsRequest = z.object({
 
 export type ClearUserFieldsRequest = z.infer<typeof ClearUserFieldsRequest>;
 
-export const SetUserBotStatusRequest = z.object({
-	user_id: SnowflakeType.describe('ID of the user to update'),
-	bot: z.boolean().describe('Whether the user should be marked as a bot'),
-});
-
-export type SetUserBotStatusRequest = z.infer<typeof SetUserBotStatusRequest>;
-
-export const SetUserSystemStatusRequest = z.object({
-	user_id: SnowflakeType.describe('ID of the user to update'),
-	system: z.boolean().describe('Whether the user should be marked as a system user'),
-});
-
-export type SetUserSystemStatusRequest = z.infer<typeof SetUserSystemStatusRequest>;
-
 export const VerifyUserEmailRequest = z.object({
 	user_id: SnowflakeType.describe('ID of the user to verify email for'),
 });
@@ -278,6 +264,13 @@ export const SendPasswordResetRequest = z.object({
 });
 
 export type SendPasswordResetRequest = z.infer<typeof SendPasswordResetRequest>;
+
+export const AdminPasswordResetLinkResponse = z.object({
+	url: z.string().describe('Password reset link to hand to the user. It is shown only once'),
+	expires_at: z.iso.datetime().describe('ISO 8601 timestamp when the link stops working'),
+});
+
+export type AdminPasswordResetLinkResponse = z.infer<typeof AdminPasswordResetLinkResponse>;
 
 export const ChangeUsernameRequest = z.object({
 	user_id: SnowflakeType.describe('ID of the user to change username for'),
@@ -567,14 +560,6 @@ export type AdminUserWebAuthnCredentialParam = z.infer<typeof AdminUserWebAuthnC
 export const AdminUserClearFieldsRequest = ClearUserFieldsRequest.omit({user_id: true});
 
 export type AdminUserClearFieldsRequest = z.infer<typeof AdminUserClearFieldsRequest>;
-
-export const AdminUserBotStatusRequest = SetUserBotStatusRequest.omit({user_id: true});
-
-export type AdminUserBotStatusRequest = z.infer<typeof AdminUserBotStatusRequest>;
-
-export const AdminUserSystemStatusRequest = SetUserSystemStatusRequest.omit({user_id: true});
-
-export type AdminUserSystemStatusRequest = z.infer<typeof AdminUserSystemStatusRequest>;
 
 export const AdminUserUsernameUpdateRequest = ChangeUsernameRequest.omit({user_id: true});
 

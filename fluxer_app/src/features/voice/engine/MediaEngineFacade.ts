@@ -2243,8 +2243,12 @@ class MediaEngineFacade extends Store {
 		this.syncVoiceEngineV2AudioControlsFromAppState();
 	}
 
-	handlePushToTalkModeChange(): void {
-		voiceEngineV2AppMediaExecutionAdapter.handlePushToTalkModeChange(this.room, () => this.getCurrentUserVoiceState());
+	handlePushToTalkModeChange(options: {preserveSelfMute?: boolean} = {}): void {
+		voiceEngineV2AppMediaExecutionAdapter.handlePushToTalkModeChange(
+			this.room,
+			() => this.getCurrentUserVoiceState(),
+			options,
+		);
 		this.syncVoiceEngineV2AudioControlsFromAppState();
 	}
 
@@ -2328,9 +2332,11 @@ class MediaEngineFacade extends Store {
 				requestMicrophoneRefresh: (targetRoom, request) =>
 					voiceEngineV2AppMediaExecutionAdapter.requestMicrophoneRefresh(targetRoom, request),
 				configureVoiceInput: (targetRoom) => voiceEngineV2AppMediaExecutionAdapter.configureVoiceInput(targetRoom),
-				handleInputKeybindChange: (targetRoom) =>
-					voiceEngineV2AppMediaExecutionAdapter.handlePushToTalkModeChange(targetRoom, () =>
-						this.getCurrentUserVoiceState(),
+				handleInputKeybindChange: (targetRoom, options) =>
+					voiceEngineV2AppMediaExecutionAdapter.handlePushToTalkModeChange(
+						targetRoom,
+						() => this.getCurrentUserVoiceState(),
+						options,
 					),
 				applyAllLocalAudioPreferences: () => voiceEngineV2AppMediaExecutionAdapter.applyAllLocalAudioPreferences(room),
 			},

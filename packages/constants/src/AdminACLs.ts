@@ -77,6 +77,8 @@ export const AdminACLs = {
 	REPORT_VIEW_REPORTER_PII: 'report:view:reporter_pii',
 	SYSTEM_DM_SEND: 'system_dm:send',
 	USER_CANCEL_BULK_MESSAGE_DELETION: 'user:cancel:bulk_message_deletion',
+	USER_CREATE_PASSWORD_RESET_LINK: 'user:create:password_reset_link',
+	USER_DELETE_RECOVERY_KIT: 'user:delete:recovery_kit',
 	USER_DELETE: 'user:delete',
 	USER_LIST_DM_CHANNELS: 'user:list:dm_channels',
 	USER_LIST_GUILDS: 'user:list:guilds',
@@ -89,7 +91,6 @@ export const AdminACLs = {
 	USER_VIEW_EMAIL: 'user:view:email',
 	USER_VIEW_IP: 'user:view:ip',
 	USER_TEMP_BAN: 'user:temp_ban',
-	USER_UPDATE_BOT_STATUS: 'user:update:bot_status',
 	USER_UPDATE_DOB: 'user:update:dob',
 	USER_UPDATE_EMAIL: 'user:update:email',
 	USER_UPDATE_FLAGS: 'user:update:flags',
@@ -106,3 +107,9 @@ export const AdminACLs = {
 	VOICE_SERVER_LIST: 'voice:server:list',
 	VOICE_SERVER_UPDATE: 'voice:server:update',
 } as const;
+
+const KNOWN_ADMIN_ACLS: ReadonlySet<string> = new Set(Object.values(AdminACLs));
+
+export function filterKnownAdminACLs(acls: Iterable<string>): Array<string> {
+	return Array.from(acls).filter((acl) => KNOWN_ADMIN_ACLS.has(acl));
+}
