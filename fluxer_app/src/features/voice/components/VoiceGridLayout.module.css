@@ -96,6 +96,17 @@
 	aspect-ratio: 16 / 9;
 }
 
+.grid[data-scrollable='true'] {
+	--voice-grid-tile-width: var(--voice-grid-available-width);
+	align-content: flex-start;
+	overflow-y: auto;
+}
+
+.grid[data-scrollable='true'] .gridItem {
+	min-width: 0;
+	min-height: 0;
+}
+
 .grid:has(> :nth-child(6)) {
 	--voice-grid-gap: 10px;
 }

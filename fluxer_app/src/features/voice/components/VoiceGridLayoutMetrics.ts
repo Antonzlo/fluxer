@@ -55,6 +55,7 @@ export interface VoiceGridLayoutMetrics {
 
 export interface VoiceGridPackedLayoutMetrics extends VoiceGridLayoutMetrics {
 	visibleTileCount: number;
+	scrollable?: boolean;
 }
 
 function resolveVoiceGridEmptyLayoutMetrics({
@@ -320,15 +321,18 @@ export function resolveVoiceGridPackedLayoutMetrics({
 			return {...bestMetrics, visibleTileCount: visibleCount};
 		}
 	}
+	// Window too small for even one min-size tile: keep everyone, shrunk to fit if alone, else stacked and scrollable.
 	return {
-		...resolveVoiceGridEmptyLayoutMetrics({
+		...resolveVoiceGridLayoutMetricsForColumns({
 			tileCount: count,
 			containerWidth: width,
 			containerHeight: height,
 			compact,
 			edgeToEdge,
+			columns: 1,
 		}),
-		visibleTileCount: 0,
+		visibleTileCount: count,
+		scrollable: count > 1,
 	};
 }
 
