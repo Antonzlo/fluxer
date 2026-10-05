@@ -219,6 +219,12 @@
 	vertical-align: var(--markup-inline-emoji-baseline-shift);
 }
 
+.markup :global(img.emoji:not(.jumboable)) {
+	width: auto;
+	min-width: var(--markup-inline-emoji-size);
+	max-width: calc(var(--markup-inline-emoji-size) * 5);
+}
+
 .markup :global(.emoji:not(.jumboable):not(img)) {
 	font-size: var(--markup-inline-emoji-size);
 	line-height: 1;
@@ -824,6 +830,13 @@
 	min-height: 0;
 	margin-block: 0;
 	vertical-align: var(--markup-inline-emoji-baseline-shift);
+}
+
+.markup.inlineFormat :global(img.emoji:not(.jumboable)),
+.markup .inlineFormat :global(img.emoji:not(.jumboable)) {
+	width: auto;
+	min-width: var(--markup-inline-emoji-size);
+	max-width: calc(var(--markup-inline-emoji-size) * 5);
 }
 
 .markup.inlineFormat :global(.emoji:not(.jumboable):not(img)),

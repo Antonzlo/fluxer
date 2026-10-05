@@ -295,7 +295,7 @@ const GuildEmojiTab: React.FC<{guildId: string}> = observer(function GuildEmojiT
 			const maxEmojiSizeLabel = formatFileSize(i18n.locale, maxEmojiSize);
 			for (const file of filesWithinSlots) {
 				try {
-					const base64Image = await ImageCropUtils.optimizeEmojiImage(file, maxEmojiSize, 128);
+					const base64Image = await ImageCropUtils.optimizeEmojiImage(file, maxEmojiSize, 128, 5);
 					const name = GuildEmojiCommands.sanitizeEmojiName(file.name);
 					preparedEmojis.push({name, image: base64Image, file});
 				} catch (error) {

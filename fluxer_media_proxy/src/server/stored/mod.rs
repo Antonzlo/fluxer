@@ -54,6 +54,8 @@ pub(in crate::server) use passthrough::serve_stored_raw;
 use passthrough::{PassthroughDisposition, serve_stored_passthrough_stream};
 use std::{collections::HashMap, sync::Arc};
 
+const EMOJI_MAX_ASPECT_RATIO: u32 = 5;
+
 pub(in crate::server) async fn serve_asset_image(
     app: &Arc<AppState>,
     method: Method,
@@ -78,9 +80,15 @@ pub(in crate::server) async fn serve_asset_image(
     let requested_quality = params
         .get("quality")
         .map(|raw| ImageQuality::parse_lenient(raw));
-    let width = selected.size;
+    // Emojis may be up to 5:1 wide, so fit them in a 5:1 box instead of cropping to a square.
+    let is_emoji = matches!(asset.kind, AssetKind::Emoji);
+    let width = if is_emoji {
+        selected.size.map(|size| size * EMOJI_MAX_ASPECT_RATIO)
+    } else {
+        selected.size
+    };
     let height = selected.size;
-    let resize_mode = if matches!(asset.kind, AssetKind::Emoji | AssetKind::Sticker) {
+    let resize_mode = if matches!(asset.kind, AssetKind::Sticker) {
         ResizeMode::Cover
     } else {
         ResizeMode::Fit

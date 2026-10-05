@@ -42,6 +42,7 @@ export async function optimizeEmojiImage(
 	file: File,
 	maxSizeBytes: number = EMOJI_MAX_SIZE_FALLBACK,
 	targetSize = 128,
+	maxAspect = 1,
 ): Promise<string> {
 	if (isSvgFile(file)) {
 		if (file.size <= maxSizeBytes) {
@@ -55,7 +56,7 @@ export async function optimizeEmojiImage(
 		}
 		throw new ImageOptimizationSizeError('animated', file.size, maxSizeBytes);
 	}
-	return containToSquareBase64(file, targetSize, maxSizeBytes, 'image/png');
+	return containToBoxBase64(file, targetSize, maxAspect, maxSizeBytes, 'image/png');
 }
 
 export async function optimizeStickerImage(
@@ -75,15 +76,14 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
 	});
 }
 
-async function containToSquareBase64(
+async function containToBoxBase64(
 	file: File,
 	target: number,
+	maxAspect: number,
 	maxBytes: number,
 	preferredMime: StaticOutputMime,
 ): Promise<string> {
 	const canvas = document.createElement('canvas');
-	canvas.width = target;
-	canvas.height = target;
 	const ctx = canvas.getContext('2d');
 	if (!ctx) throw new Error('Could not create canvas context');
 	const objectUrl = URL.createObjectURL(file);
@@ -94,20 +94,23 @@ async function containToSquareBase64(
 		if (sourcePixels > SOURCE_MAX_PIXELS) {
 			throw new Error(`Image is too large to process (${img.naturalWidth}x${img.naturalHeight})`);
 		}
-		ctx.clearRect(0, 0, target, target);
+		const aspect = Math.min(Math.max(img.naturalWidth / img.naturalHeight, 1), maxAspect);
+		const boxWidth = Math.round(target * aspect);
+		canvas.width = boxWidth;
+		canvas.height = target;
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = 'high';
-		const s = Math.min(target / img.naturalWidth, target / img.naturalHeight);
+		const s = Math.min(boxWidth / img.naturalWidth, target / img.naturalHeight);
 		const dw = Math.max(1, Math.round(img.naturalWidth * s));
 		const dh = Math.max(1, Math.round(img.naturalHeight * s));
-		const dx = Math.floor((target - dw) / 2);
+		const dx = Math.floor((boxWidth - dw) / 2);
 		const dy = Math.floor((target - dh) / 2);
 		ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, dw, dh);
 	} finally {
 		URL.revokeObjectURL(objectUrl);
 	}
 
-	const hasTransparency = canvasHasTransparentPixels(ctx, target);
+	const hasTransparency = canvasHasTransparentPixels(ctx, canvas.width, target);
 	const attempts: Array<{mime: StaticOutputMime; quality?: number}> = [{mime: preferredMime}];
 	for (const quality of WEBP_QUALITY_STEPS) attempts.push({mime: 'image/webp', quality});
 	if (!hasTransparency) {
@@ -138,9 +141,9 @@ function encodeCanvas(canvas: HTMLCanvasElement, mime: StaticOutputMime, quality
 	});
 }
 
-function canvasHasTransparentPixels(ctx: CanvasRenderingContext2D, target: number): boolean {
+function canvasHasTransparentPixels(ctx: CanvasRenderingContext2D, width: number, height: number): boolean {
 	try {
-		const {data} = ctx.getImageData(0, 0, target, target);
+		const {data} = ctx.getImageData(0, 0, width, height);
 		for (let i = 3; i < data.length; i += 4) {
 			if ((data[i] ?? 255) < 255) return true;
 		}

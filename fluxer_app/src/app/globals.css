@@ -616,6 +616,13 @@ img::before {
 	vertical-align: -0.4em;
 }
 
+/* Custom emoji may be up to 5:1 wide: height fixed, width follows the image. */
+img.emoji {
+	width: auto;
+	min-width: var(--emoji-size-emoji);
+	max-width: calc(var(--emoji-size-emoji) * 5);
+}
+
 .emoji img {
 	width: 100%;
 	height: 100%;
@@ -626,6 +633,12 @@ img::before {
 	width: var(--emoji-size-jumbo-emoji);
 	height: var(--emoji-size-jumbo-emoji);
 	min-height: var(--emoji-size-jumbo-emoji);
+}
+
+img.emoji.jumboable {
+	width: auto;
+	min-width: var(--emoji-size-jumbo-emoji);
+	max-width: calc(var(--emoji-size-jumbo-emoji) * 5);
 }
 
 .emoji:not(img) {
