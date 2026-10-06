@@ -25,25 +25,26 @@ export function getEmojiSpansVersion(): number {
 	return spans.size + [...spans.values()].reduce((a, b) => a + b, 0);
 }
 
+/** Packs rows first-fit: a gap left by a wide emoji that wraps is filled by the next emoji that fits. */
 export function chunkEmojisBySpan(emojis: Array<FlatEmoji>, perRow: number): Array<Array<FlatEmoji>> {
+	const spans = emojis.map((emoji) => Math.min(getEmojiSpan(emoji), perRow));
+	const placed = new Array<boolean>(emojis.length).fill(false);
 	const rows: Array<Array<FlatEmoji>> = [];
-	let row: Array<FlatEmoji> = [];
-	let used = 0;
-	for (const emoji of emojis) {
-		const span = Math.min(getEmojiSpan(emoji), perRow);
-		if (used + span > perRow) {
-			rows.push(row);
-			row = [];
-			used = 0;
+	let start = 0;
+	while (start < emojis.length) {
+		if (placed[start]) {
+			start++;
+			continue;
 		}
-		row.push(emoji);
-		used += span;
-		if (used >= perRow) {
-			rows.push(row);
-			row = [];
-			used = 0;
+		const row: Array<FlatEmoji> = [];
+		let used = 0;
+		for (let i = start; i < emojis.length && used < perRow; i++) {
+			if (placed[i] || used + spans[i] > perRow) continue;
+			placed[i] = true;
+			row.push(emojis[i]);
+			used += spans[i];
 		}
+		rows.push(row);
 	}
-	if (row.length > 0) rows.push(row);
 	return rows;
 }
