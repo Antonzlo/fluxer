@@ -4,6 +4,7 @@ import i18nGlobal from '@app/app/I18n';
 import {GenericErrorModal} from '@app/features/app/components/alerts/GenericErrorModal';
 import {ConfirmModal} from '@app/features/app/components/dialogs/ConfirmModal';
 import {useShouldAnimate} from '@app/features/app/hooks/useShouldAnimate';
+import {getSpanFromSize} from '@app/features/channel/components/emoji_picker/EmojiSpans';
 import styles from '@app/features/emoji/components/emojis/EmojiListItem.module.css';
 import * as GuildEmojiCommands from '@app/features/expressions/commands/GuildEmojiCommands';
 import Guilds from '@app/features/guild/state/Guilds';
@@ -353,6 +354,7 @@ export const EmojiListItem: React.FC<{
 	onRemove: (emojiId: string) => void;
 }> = observer(({guildId, emoji, layout, canModify, onRename, onRemove}) => {
 	const {i18n} = useLingui();
+	const [previewSpan, setPreviewSpan] = useState(1);
 	const avatarUrl = emoji.user ? AvatarUtils.getUserAvatarURL(emoji.user, false) : null;
 	const gridNameButtonRef = useRef<HTMLButtonElement | null>(null);
 	const showEmojiNameValidationError = (message: string) => {
@@ -544,12 +546,19 @@ export const EmojiListItem: React.FC<{
 		>
 			<div className={clsx(styles.card, styles.listCard)} data-flx="emoji.emojis.emoji-list-item.card--2">
 				<div className={styles.listEmoji} data-flx="emoji.emojis.emoji-list-item.list-emoji">
-					<img
-						src={emojiUrl}
-						alt={emoji.name}
-						className={styles.listEmojiImage}
-						data-flx="emoji.emojis.emoji-list-item.list-emoji-image"
-					/>
+					<div
+						className={styles.listEmojiGrid}
+						style={{width: `calc(var(--emoji-cell) * ${previewSpan})`}}
+						data-flx="emoji.emojis.emoji-list-item.list-emoji-grid"
+					>
+						<img
+							src={emojiUrl}
+							alt={emoji.name}
+							className={styles.listEmojiImage}
+							onLoad={(e) => setPreviewSpan(getSpanFromSize(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight))}
+							data-flx="emoji.emojis.emoji-list-item.list-emoji-image"
+						/>
+					</div>
 				</div>
 				<div className={styles.listName} data-flx="emoji.emojis.emoji-list-item.list-name">
 					{canModify ? (

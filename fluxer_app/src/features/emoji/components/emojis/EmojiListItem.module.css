@@ -2,7 +2,7 @@
 
 .header {
 	display: none;
-	grid-template-columns: 4.5rem minmax(12.5rem, 1fr) minmax(11.25rem, 0.85fr);
+	grid-template-columns: 15rem minmax(8rem, 1fr) minmax(9rem, 0.85fr);
 	align-items: center;
 	gap: 0.75rem;
 	padding: 0 0.75rem 0.5rem calc(0.75rem + 0.0625rem);
@@ -107,7 +107,7 @@
 
 .listCard {
 	display: grid;
-	grid-template-columns: 4.5rem minmax(12.5rem, 1fr) minmax(11.25rem, 0.85fr);
+	grid-template-columns: 15rem minmax(8rem, 1fr) minmax(9rem, 0.85fr);
 	align-items: center;
 	gap: 0.75rem;
 	padding: 0.75rem;
@@ -127,9 +127,23 @@
 	justify-content: center;
 }
 
+.listEmojiGrid {
+	--emoji-cell: 3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--emoji-cell);
+	background-image:
+		linear-gradient(to right, color-mix(in srgb, currentColor 30%, transparent) 0.0625rem, transparent 0.0625rem),
+		linear-gradient(to bottom, color-mix(in srgb, currentColor 30%, transparent) 0.0625rem, transparent 0.0625rem);
+	background-size: var(--emoji-cell) var(--emoji-cell);
+	box-shadow: inset -0.0625rem -0.0625rem color-mix(in srgb, currentColor 30%, transparent);
+}
+
 .listEmojiImage {
 	height: 2.5rem;
-	width: 2.5rem;
+	width: auto;
+	max-width: 100%;
 	object-fit: contain;
 	image-rendering: auto;
 }
@@ -252,7 +266,8 @@
 
 .gridEmojiImage {
 	height: 3rem;
-	width: 3rem;
+	width: auto;
+	max-width: 100%;
 	object-fit: contain;
 	image-rendering: auto;
 }

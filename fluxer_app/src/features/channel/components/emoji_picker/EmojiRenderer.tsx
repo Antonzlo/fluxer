@@ -5,6 +5,7 @@ import {
 	getEmojiSpriteSheetLayout,
 	getSpriteSheetBackground,
 } from '@app/features/channel/components/emoji_picker/EmojiPickerConstants';
+import {getEmojiSpan, getEmojiSpanKey, reportEmojiSize} from '@app/features/channel/components/emoji_picker/EmojiSpans';
 import type {Channel} from '@app/features/channel/models/Channel';
 import * as EmojiPickerCommands from '@app/features/emoji/commands/EmojiPickerCommands';
 import type {FlatEmoji} from '@app/features/emoji/types/EmojiTypes';
@@ -24,11 +25,12 @@ import React, {useEffect, useImperativeHandle, useMemo, useRef} from 'react';
 type PickerEmojiImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
 	src: string;
 	alt: string;
+	spanKey?: string | null;
 };
 
 const PICKER_IMAGE_RETRY_LIMIT = 3;
 
-const PickerEmojiImage = ({src, alt, ...props}: PickerEmojiImageProps) => {
+const PickerEmojiImage = ({src, alt, spanKey, ...props}: PickerEmojiImageProps) => {
 	const imageRef = useRef<HTMLImageElement | null>(null);
 	const hasLoadedRef = useRef(false);
 	const retriesRef = useRef(0);
@@ -55,6 +57,7 @@ const PickerEmojiImage = ({src, alt, ...props}: PickerEmojiImageProps) => {
 		});
 	};
 	const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+		if (spanKey != null) reportEmojiSize(spanKey, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight);
 		const view = event.currentTarget?.ownerDocument?.defaultView ?? window;
 		view.requestAnimationFrame(() => {
 			if (imageRef.current == null) {
@@ -113,6 +116,8 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 			}
 		}, [shouldScrollIntoView]);
 		const availability = checkEmojiAvailability(i18n, emoji, channel);
+		const spanKey = getEmojiSpanKey(emoji);
+		const span = getEmojiSpan(emoji);
 		const customEmojiUrl = useMemo(
 			() =>
 				emoji.id
@@ -156,6 +161,7 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 			const className = clsx(
 				styles.emojiRenderer,
 				isHighlighted && styles.selectedEmojiRenderer,
+				span > 1 && styles.wideEmojiRenderer,
 				isDisabled && 'cursor-not-allowed',
 			);
 			return (
@@ -169,6 +175,7 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 						onClick={handleClick}
 						onContextMenu={handleContextMenu}
 						className={className}
+						style={span > 1 ? {gridColumn: `span ${span}`, aspectRatio: span} : undefined}
 						aria-disabled={isDisabled}
 						aria-selected={isHighlighted}
 						role="option"
@@ -183,6 +190,7 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 		if (emoji.guildId || emoji.id) {
 			const content = (
 				<PickerEmojiImage
+					spanKey={spanKey}
 					src={customEmojiUrl}
 					alt={emoji.name}
 					data-flx="channel.emoji-picker.emoji-renderer.emoji-image"
@@ -193,6 +201,7 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 		if (!emoji.useSpriteSheet) {
 			return renderButton(
 				<PickerEmojiImage
+					spanKey={spanKey}
 					src={emoji.url ?? ''}
 					alt={emoji.name}
 					data-flx="channel.emoji-picker.emoji-renderer.emoji-image--2"
@@ -205,13 +214,14 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 			const {url} = getEmojiDisplayDataWithSkinTone(emoji, skinTone);
 			if (url) {
 				return renderButton(
-					<PickerEmojiImage src={url} alt={emoji.name} data-flx="channel.emoji-picker.emoji-renderer.emoji-image--4" />,
+					<PickerEmojiImage spanKey={spanKey} src={url} alt={emoji.name} data-flx="channel.emoji-picker.emoji-renderer.emoji-image--4" />,
 				);
 			}
 		}
 		if (index === undefined) {
 			return renderButton(
 				<PickerEmojiImage
+					spanKey={spanKey}
 					src={emoji.url ?? ''}
 					alt={emoji.name}
 					data-flx="channel.emoji-picker.emoji-renderer.emoji-image--3"
