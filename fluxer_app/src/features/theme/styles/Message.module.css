@@ -946,6 +946,10 @@
 	vertical-align: var(--markup-restricted-inline-emoji-baseline-shift);
 }
 
+.repliedTextContent :global(img.emoji) {
+	width: auto;
+}
+
 .repliedTextContent :global(.emoji:not(img)) {
 	font-size: var(--markup-restricted-inline-emoji-size);
 	line-height: 1;
