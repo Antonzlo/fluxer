@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {EMOJIS_PER_ROW} from '@app/features/channel/components/emoji_picker/EmojiPickerConstants';
+import {chunkEmojisBySpan, getEmojiSpansVersion} from '@app/features/channel/components/emoji_picker/EmojiSpans';
 import type {VirtualRow} from '@app/features/channel/components/emoji_picker/VirtualRow';
 import EmojiPicker from '@app/features/emoji/state/EmojiPicker';
 import type {FlatEmoji} from '@app/features/emoji/types/EmojiTypes';
@@ -30,14 +31,15 @@ export function useVirtualRows(
 ) {
 	const {i18n} = useLingui();
 	const collapsedCategories = EmojiPicker.collapsedCategories;
+	const spansVersion = getEmojiSpansVersion();
 	return useMemo(() => {
 		const rows: Array<VirtualRow> = [];
 		let currentIndex = 0;
 		if (searchTerm) {
-			for (let i = 0; i < renderedEmojis.length; i += emojisPerRow) {
+			for (const chunk of chunkEmojisBySpan(renderedEmojis, emojisPerRow)) {
 				rows.push({
 					type: 'emoji-row',
-					emojis: renderedEmojis.slice(i, i + emojisPerRow),
+					emojis: chunk,
 					index: currentIndex++,
 				});
 			}
@@ -51,10 +53,10 @@ export function useVirtualRows(
 					index: currentIndex++,
 				});
 				if (!isFavoritesCollapsed) {
-					for (let i = 0; i < favoriteEmojis.length; i += emojisPerRow) {
+					for (const chunk of chunkEmojisBySpan(favoriteEmojis, emojisPerRow)) {
 						rows.push({
 							type: 'emoji-row',
-							emojis: favoriteEmojis.slice(i, i + emojisPerRow),
+							emojis: chunk,
 							index: currentIndex++,
 						});
 					}
@@ -69,10 +71,10 @@ export function useVirtualRows(
 					index: currentIndex++,
 				});
 				if (!isFrequentlyUsedCollapsed) {
-					for (let i = 0; i < frequentlyUsedEmojis.length; i += emojisPerRow) {
+					for (const chunk of chunkEmojisBySpan(frequentlyUsedEmojis, emojisPerRow)) {
 						rows.push({
 							type: 'emoji-row',
-							emojis: frequentlyUsedEmojis.slice(i, i + emojisPerRow),
+							emojis: chunk,
 							index: currentIndex++,
 						});
 					}
@@ -89,10 +91,10 @@ export function useVirtualRows(
 					index: currentIndex++,
 				});
 				if (!isGuildCollapsed) {
-					for (let i = 0; i < emojis.length; i += emojisPerRow) {
+					for (const chunk of chunkEmojisBySpan(emojis, emojisPerRow)) {
 						rows.push({
 							type: 'emoji-row',
-							emojis: emojis.slice(i, i + emojisPerRow),
+							emojis: chunk,
 							index: currentIndex++,
 							isCustomEmoji: true,
 							guildId,
@@ -109,10 +111,10 @@ export function useVirtualRows(
 					index: currentIndex++,
 				});
 				if (!isCategoryCollapsed) {
-					for (let i = 0; i < emojis.length; i += emojisPerRow) {
+					for (const chunk of chunkEmojisBySpan(emojis, emojisPerRow)) {
 						rows.push({
 							type: 'emoji-row',
-							emojis: emojis.slice(i, i + emojisPerRow),
+							emojis: chunk,
 							index: currentIndex++,
 						});
 					}
@@ -128,6 +130,7 @@ export function useVirtualRows(
 		customEmojisByGuildId,
 		unicodeEmojisByCategory,
 		emojisPerRow,
+		spansVersion,
 		collapsedCategories,
 		i18n.locale,
 	]);
