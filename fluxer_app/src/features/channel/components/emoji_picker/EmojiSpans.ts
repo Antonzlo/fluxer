@@ -15,9 +15,13 @@ export function getEmojiSpan(emoji: FlatEmoji): number {
 	return (key != null && spans.get(key)) || 1;
 }
 
+export function getSpanFromSize(width: number, height: number): number {
+	return width && height ? Math.max(1, Math.ceil(width / height - 0.01)) : 1;
+}
+
 export function reportEmojiSize(key: string, width: number, height: number): void {
 	if (!width || !height) return;
-	const span = Math.max(1, Math.ceil(width / height - 0.01));
+	const span = getSpanFromSize(width, height);
 	if (spans.get(key) !== span) spans.set(key, span);
 }
 
