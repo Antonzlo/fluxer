@@ -98,6 +98,10 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           shared-key: app-proxy-fork
+          # The env hash covers every installed rustc, so a runner image bumping its
+          # preinstalled stable orphans the cache. We pin 1.98.1 and cargo's own
+          # fingerprints already reject artifacts from another compiler.
+          add-rust-environment-hash-key: false
           workspaces: |
             . -> target
             packages/markdown_parser/rust -> target
