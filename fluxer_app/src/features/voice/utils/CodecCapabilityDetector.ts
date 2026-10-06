@@ -199,11 +199,11 @@ function getScreenShareCodecPolicyUnsupported(
 	return null;
 }
 
-function hasPublishPathNativeHardwareEncoder(codec: VideoCodec, context: CodecPolicyContext): boolean {
+function hasPublishPathNativeHardwareEncoder(codec: VideoCodec): boolean {
 	if (!hasNativeHardwareEncoder(codec)) return false;
 	const backend = getNativeHardwareEncoderCapabilitiesSync()?.backend;
 	if (backend === 'videotoolbox') return true;
-	if (backend === 'nvenc') return context.platform !== 'linux';
+	if (backend === 'nvenc') return true;
 	return false;
 }
 
@@ -226,7 +226,7 @@ function buildReport(): CodecCapabilityReport {
 		if (measured !== 'unknown') {
 			return measured;
 		}
-		return hasPublishPathNativeHardwareEncoder(codec, context) ? 'hardware' : 'unknown';
+		return hasPublishPathNativeHardwareEncoder(codec) ? 'hardware' : 'unknown';
 	}
 	type DescribedUnsupported = Omit<CodecSupportInfo, 'hardwareAccelerated'>;
 	function unsupported(codec: keyof CodecCapabilities, info: DescribedUnsupported): CodecSupportInfo {
@@ -244,8 +244,8 @@ function buildReport(): CodecCapabilityReport {
 				detail: 'This codec failed while publishing during the current session.',
 			});
 		}
-		const supportedByNativeHardware = hasPublishPathNativeHardwareEncoder(codec, context);
-		if (caps[codec]) {
+		const supportedByNativeHardware = hasPublishPathNativeHardwareEncoder(codec);
+		if (caps[codec] || supportedByNativeHardware) {
 			return {
 				supported: true,
 				reason: 'supported',
