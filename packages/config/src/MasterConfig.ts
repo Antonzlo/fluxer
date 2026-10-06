@@ -88,6 +88,7 @@ export interface MasterConfig {
 			headers_timeout_ms: number;
 			request_timeout_ms: number;
 			max_inflight_requests: number;
+			automated_message_deletion_delay_days: number;
 			ip_ban_exempt_ips: Array<string>;
 			donation_proxy_key: string;
 			trusted_callers: Array<{
@@ -147,6 +148,7 @@ export interface MasterConfig {
 	auth: {
 		sudo_mode_secret: string;
 		connection_initiation_secret: string;
+		profile_pseudonym_secret: string;
 		sso_allow_private_addresses: boolean;
 		passkeys: {
 			rp_name: string;
