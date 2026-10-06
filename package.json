@@ -13,6 +13,7 @@
 		"dev:desktop:canary": "cargo run -p fluxer-dev -- desktop canary",
 		"dev:desktop:package": "cargo run -p fluxer-dev -- desktop package",
 		"dev:desktop:run": "cargo run -p fluxer-dev -- desktop run",
+		"dev:remote": "node tools/remote-web/dev.mjs",
 		"dev:infra:restart": "pnpm dev:infra:stop && pnpm dev:infra:start",
 		"dev:infra:start": "cargo run -p fluxer-dev -- infra start",
 		"dev:infra:status": "cargo run -p fluxer-dev -- infra status",
