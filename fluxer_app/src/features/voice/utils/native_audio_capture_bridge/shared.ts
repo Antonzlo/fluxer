@@ -263,17 +263,27 @@ export interface NativeAudioChunkerOutput {
 	durationUs: number;
 }
 
+// Chromium stamps its own capture frames on the performance.now() timebase and turns AudioData timestamps into
+// RTCP sender report times. Native capture clocks (WASAPI, PipeWire) are unrelated, so frames are rebased here.
+const NATIVE_AUDIO_TIMESTAMP_RESYNC_US = 200_000;
+
+function nowUs(): number {
+	return Math.round(performance.now() * 1000);
+}
+
 export class NativeAudioFrameChunker {
 	private readonly targetChunkDurationUs: number;
+	private readonly clockUs: () => number;
 	private sampleRate = 0;
 	private channels = 0;
 	private nextTimestampUs = 0;
 	private pendingChunkSamples: Float32Array<ArrayBuffer> | null = null;
 	private pendingChunkFrames = 0;
 
-	constructor(targetChunkDurationUs: number = GENERATOR_AUDIO_CHUNK_DURATION_US) {
+	constructor(targetChunkDurationUs: number = GENERATOR_AUDIO_CHUNK_DURATION_US, clockUs: () => number = nowUs) {
 		assert.ok(targetChunkDurationUs > 0, 'native audio chunk duration must be positive');
 		this.targetChunkDurationUs = targetChunkDurationUs;
+		this.clockUs = clockUs;
 	}
 
 	push(message: {
@@ -292,7 +302,12 @@ export class NativeAudioFrameChunker {
 			'native audio packet too large',
 		);
 		if (message.sampleRate !== this.sampleRate || message.channels !== this.channels) {
-			this.reset(message.sampleRate, message.channels, message.timestampUs);
+			this.reset(message.sampleRate, message.channels);
+		} else if (
+			this.pendingChunkFrames === 0 &&
+			Math.abs(this.clockUs() - this.nextTimestampUs) > NATIVE_AUDIO_TIMESTAMP_RESYNC_US
+		) {
+			this.nextTimestampUs = this.clockUs();
 		}
 		const targetFrames = this.targetFramesPerChunk();
 		const outputs: Array<NativeAudioChunkerOutput> = [];
@@ -313,10 +328,10 @@ export class NativeAudioFrameChunker {
 		return outputs;
 	}
 
-	private reset(sampleRate: number, channels: number, timestampUs: number): void {
+	private reset(sampleRate: number, channels: number): void {
 		this.sampleRate = sampleRate;
 		this.channels = channels;
-		this.nextTimestampUs = Math.max(0, Math.round(timestampUs));
+		this.nextTimestampUs = this.clockUs();
 		this.pendingChunkSamples = null;
 		this.pendingChunkFrames = 0;
 	}
