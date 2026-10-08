@@ -105,7 +105,11 @@ function trackInfoFromPartial(partial: VoiceMediaGraphPartialTrackInfo | null): 
 	if (!partial) return null;
 	if (!isPositiveDimension(partial.width)) return null;
 	if (!isPositiveDimension(partial.height)) return null;
-	const info: VoiceMediaGraphTrackInfo = {width: partial.width, height: partial.height, fps: Math.round(partial.fps ?? 0)};
+	const info: VoiceMediaGraphTrackInfo = {
+		width: partial.width,
+		height: partial.height,
+		fps: Math.round(partial.fps ?? 0),
+	};
 	if (partial.codec) info.codec = partial.codec;
 	return info;
 }

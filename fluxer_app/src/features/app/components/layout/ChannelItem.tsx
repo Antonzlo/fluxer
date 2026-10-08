@@ -512,8 +512,7 @@ export const ChannelItem = observer(
 			cancelChannelPreload();
 		}, [cancelChannelPreload]);
 		const hoverAffordancesActive =
-			allowHoverAffordances &&
-			(contextMenuOpen || showKeyboardAffordances || isPointerHovered);
+			allowHoverAffordances && (contextMenuOpen || showKeyboardAffordances || isPointerHovered);
 		const hasVoiceUserLimit = channelIsVoice && channel.userLimit != null && channel.userLimit > 0;
 		const showChatAffordance =
 			allowHoverAffordances && channelIsVoice && !Accessibility.voiceChannelJoinRequiresDoubleClick;

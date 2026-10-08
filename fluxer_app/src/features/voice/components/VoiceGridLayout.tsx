@@ -129,7 +129,7 @@ export function VoiceGridLayout({
 				data-tile-count={visibleEntries.length}
 				data-total-tile-count={entries.length}
 				data-hidden-tile-count={hiddenTileCount > 0 ? hiddenTileCount : undefined}
-					data-scrollable={typeof packedMetrics !== 'number' && packedMetrics.scrollable ? 'true' : undefined}
+				data-scrollable={typeof packedMetrics !== 'number' && packedMetrics.scrollable ? 'true' : undefined}
 				style={gridStyle}
 				data-flx="voice.voice-grid-layout.grid"
 			>

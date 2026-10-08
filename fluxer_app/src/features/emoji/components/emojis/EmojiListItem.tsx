@@ -555,7 +555,9 @@ export const EmojiListItem: React.FC<{
 							src={emojiUrl}
 							alt={emoji.name}
 							className={styles.listEmojiImage}
-							onLoad={(e) => setPreviewSpan(getSpanFromSize(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight))}
+							onLoad={(e) =>
+								setPreviewSpan(getSpanFromSize(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight))
+							}
 							data-flx="emoji.emojis.emoji-list-item.list-emoji-image"
 						/>
 					</div>

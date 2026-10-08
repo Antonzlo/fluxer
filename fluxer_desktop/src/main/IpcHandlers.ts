@@ -62,7 +62,6 @@ import {
 	releaseStreamingPriority,
 	resetStreamingPriority,
 } from '@electron/main/StreamingPriority';
-import {acquireVoicePriority, releaseVoicePriority} from '@electron/main/VoicePriority';
 import {setTaskbarProgress, type TaskbarProgressMode} from '@electron/main/TaskbarProgress';
 import {registerThemeLocalFileHandlers} from '@electron/main/ThemeLocalFiles';
 import {
@@ -80,6 +79,7 @@ import {
 	setVoiceDebugEventSinkAlwaysOnTop,
 	VOICE_DEBUG_EVENT_SINK_POPOUT_KEY,
 } from '@electron/main/VoiceDebugEventSinkPopout';
+import {acquireVoicePriority, releaseVoicePriority} from '@electron/main/VoicePriority';
 import {
 	clearSavedWindowBounds,
 	closeThemeStudioPopoutWindow,

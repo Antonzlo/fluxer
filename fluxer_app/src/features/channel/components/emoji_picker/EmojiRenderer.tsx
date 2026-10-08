@@ -214,7 +214,12 @@ export const EmojiRenderer = React.forwardRef<HTMLButtonElement, EmojiRendererPr
 			const {url} = getEmojiDisplayDataWithSkinTone(emoji, skinTone);
 			if (url) {
 				return renderButton(
-					<PickerEmojiImage spanKey={spanKey} src={url} alt={emoji.name} data-flx="channel.emoji-picker.emoji-renderer.emoji-image--4" />,
+					<PickerEmojiImage
+						spanKey={spanKey}
+						src={url}
+						alt={emoji.name}
+						data-flx="channel.emoji-picker.emoji-renderer.emoji-image--4"
+					/>,
 				);
 			}
 		}
