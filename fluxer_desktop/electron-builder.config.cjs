@@ -1749,7 +1749,8 @@ module.exports = {
 		artifactName: `${artifactProductName}-\${version}-portable-\${os}-\${arch}.\${ext}`,
 	},
 	linux: {
-		icon: `build_resources/${iconDir}/1024x1024.png`,
+		// hicolor only searches up to 512x512, so a lone 1024x1024 icon is never found by the launcher.
+		icon: isStable ? `build_resources/${iconDir}/linux` : `build_resources/${iconDir}/1024x1024.png`,
 		category: 'Network;InstantMessaging;Chat;',
 		target: [
 			{
