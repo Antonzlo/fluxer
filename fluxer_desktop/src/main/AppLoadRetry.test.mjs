@@ -29,11 +29,10 @@ function loadAppLoadRetry() {
 	return module.exports;
 }
 
-const APP_URL = 'https://web.canary.fluxer.app/';
-const MIGRATED_URL = 'https://canary.fluxer.com/';
+const APP_URL = 'fluxer-app://app/channels/@me';
 const silentLogger = {info() {}, warn() {}, error() {}};
 
-function createHarness({appUrl = APP_URL, fallbackUrl = null, trustedUrls = null} = {}) {
+function createHarness() {
 	const listeners = new Map();
 	const timers = [];
 	const loads = [];
@@ -59,11 +58,6 @@ function createHarness({appUrl = APP_URL, fallbackUrl = null, trustedUrls = null
 			if (outcome === 'aborted') {
 				return Promise.reject(new Error(`ERR_ABORTED (-3) loading '${url}'`));
 			}
-			if (outcome === 'bad-gateway') {
-				webContents.emit('did-navigate', url, 502, 'Bad Gateway');
-				webContents.emit('did-finish-load');
-				return Promise.resolve();
-			}
 			webContents.emit('did-fail-load', -105, 'ERR_NAME_NOT_RESOLVED', url, true);
 			webContents.emit('did-finish-load');
 			return Promise.reject(new Error(`ERR_NAME_NOT_RESOLVED (-105) loading '${url}'`));
@@ -72,10 +66,9 @@ function createHarness({appUrl = APP_URL, fallbackUrl = null, trustedUrls = null
 	const {createAppLoadRetry} = loadAppLoadRetry();
 	const retry = createAppLoadRetry({
 		webContents,
-		appUrl,
+		appUrl: APP_URL,
 		logger: silentLogger,
-		isTrustedUrl: (url) => trustedUrls === null || trustedUrls.includes(new URL(url).origin),
-		getFallbackUrl: (url) => (url === MIGRATED_URL ? fallbackUrl : null),
+		isTrustedUrl: () => true,
 		onRepeatedFailure: (failure) => prompts.push(failure),
 		onCommitted: () => {
 			commits += 1;
@@ -94,7 +87,6 @@ function createHarness({appUrl = APP_URL, fallbackUrl = null, trustedUrls = null
 		retry,
 		loads,
 		prompts,
-		emit: (event, ...args) => webContents.emit(event, ...args),
 		get commits() {
 			return commits;
 		},
@@ -128,6 +120,7 @@ describe('AppLoadRetry', () => {
 
 		assert.deepEqual(delays, [1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000]);
 		assert.equal(harness.loads.length, 9);
+		assert.ok(harness.loads.every((url) => url === APP_URL));
 	});
 
 	test('resets the backoff and dismisses the prompt once the app commits', async () => {
@@ -169,95 +162,5 @@ describe('AppLoadRetry', () => {
 		await harness.settle();
 
 		assert.deepEqual(harness.pendingDelays(), []);
-	});
-
-	test('retries the failed page with backoff while the server answers 5xx', async () => {
-		const harness = createHarness();
-		harness.setOutcome('bad-gateway');
-		harness.retry.start();
-		await harness.settle();
-		assert.deepEqual(harness.pendingDelays(), [1000]);
-
-		const delays = [];
-		for (let i = 0; i < 7; i += 1) {
-			delays.push(await harness.fireNextTimer());
-		}
-
-		assert.deepEqual(delays, [1000, 2000, 4000, 8000, 16000, 30000, 30000]);
-		assert.equal(harness.loads.length, 8);
-		assert.equal(harness.prompts.length, 0);
-	});
-
-	test('retries the deep link that returned 5xx instead of the app root', async () => {
-		const harness = createHarness();
-		harness.setOutcome('ok');
-		harness.retry.start();
-		await harness.settle();
-
-		const deepLink = `${APP_URL}channels/1/2`;
-		harness.setOutcome('bad-gateway');
-		harness.emit('did-navigate', deepLink, 502, 'Bad Gateway');
-		await harness.fireNextTimer();
-
-		assert.deepEqual(harness.loads, [APP_URL, deepLink]);
-	});
-
-	test('resets the backoff and goes back to the app root once a 5xx page recovers', async () => {
-		const harness = createHarness();
-		harness.setOutcome('bad-gateway');
-		harness.retry.start();
-		await harness.settle();
-		await harness.fireNextTimer();
-		await harness.fireNextTimer();
-
-		harness.setOutcome('ok');
-		await harness.fireNextTimer();
-		assert.deepEqual(harness.pendingDelays(), []);
-
-		harness.setOutcome('dns-failure');
-		harness.retry.retryNow();
-		await harness.settle();
-		assert.equal(harness.loads.at(-1), APP_URL);
-		assert.deepEqual(harness.pendingDelays(), [1000]);
-	});
-
-	test('dismisses the failure prompt when the server starts answering 5xx instead', async () => {
-		const harness = createHarness();
-		harness.retry.start();
-		await harness.settle();
-		harness.setOutcome('bad-gateway');
-		await harness.fireNextTimer();
-
-		assert.equal(harness.commits, 1);
-		assert.deepEqual(harness.pendingDelays(), [2000]);
-	});
-
-	test('ignores 5xx pages from origins the app does not trust', async () => {
-		const harness = createHarness({trustedUrls: ['https://web.canary.fluxer.app']});
-		harness.retry.start();
-		await harness.settle();
-		harness.emit('did-navigate', 'https://elsewhere.example/', 502, 'Bad Gateway');
-
-		assert.deepEqual(harness.pendingDelays(), []);
-	});
-
-	test('falls back from a migrated origin that answers 5xx', async () => {
-		const harness = createHarness({appUrl: MIGRATED_URL, fallbackUrl: APP_URL});
-		harness.setOutcome('bad-gateway');
-		harness.retry.start();
-		await harness.settle();
-
-		assert.deepEqual(harness.loads.slice(0, 2), [MIGRATED_URL, APP_URL]);
-		assert.equal(harness.retry.getAppUrl(), APP_URL);
-	});
-
-	test('falls back from the migrated origin without backing off', async () => {
-		const harness = createHarness({appUrl: MIGRATED_URL, fallbackUrl: APP_URL});
-		harness.retry.start();
-		await harness.settle();
-
-		assert.deepEqual(harness.loads.slice(0, 2), [MIGRATED_URL, APP_URL]);
-		assert.equal(harness.retry.getAppUrl(), APP_URL);
-		assert.deepEqual(harness.pendingDelays(), [1000]);
 	});
 });

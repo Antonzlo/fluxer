@@ -4,7 +4,6 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
 const FAILURES_BEFORE_PROMPT = 3;
 const ERR_ABORTED = -3;
-const HTTP_SERVER_ERROR_MIN = 500;
 
 export interface AppLoadFailure {
 	errorCode: number;
@@ -23,7 +22,6 @@ interface AppLoadRetryOptions {
 	appUrl: string;
 	logger: AppLoadRetryLogger;
 	isTrustedUrl: (url: string) => boolean;
-	getFallbackUrl: (failedUrl: string) => string | null;
 	onRepeatedFailure: (failure: AppLoadFailure) => void;
 	onCommitted: () => void;
 	setTimer?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
@@ -33,7 +31,6 @@ interface AppLoadRetryOptions {
 export interface AppLoadRetry {
 	start(): void;
 	retryNow(): void;
-	getAppUrl(): string;
 }
 
 function isRetryableLoadError(errorCode: number): boolean {
@@ -52,8 +49,7 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	const {webContents, logger} = options;
 	const setTimer = options.setTimer ?? setTimeout;
 	const clearTimer = options.clearTimer ?? clearTimeout;
-	let appUrl = options.appUrl;
-	let serverErrorUrl: string | null = null;
+	const appUrl = options.appUrl;
 	let attempt = 0;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	const cancelTimer = () => {
@@ -64,7 +60,7 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	};
 	const load = (reason: string) => {
 		if (webContents.isDestroyed()) return;
-		webContents.loadURL(serverErrorUrl ?? appUrl).catch((error: unknown) => {
+		webContents.loadURL(appUrl).catch((error: unknown) => {
 			const errorCode = getLoadErrorCode(error);
 			if (errorCode !== null && !isRetryableLoadError(errorCode)) {
 				logger.info('Ignoring non-retryable app load rejection', {reason, errorCode});
@@ -91,41 +87,18 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 	const reset = () => {
 		cancelTimer();
 		attempt = 0;
-		serverErrorUrl = null;
-	};
-	const fallBackFromMigratedOrigin = (failedUrl: string, detail: Record<string, unknown>): boolean => {
-		const fallbackUrl = options.getFallbackUrl(failedUrl);
-		if (fallbackUrl === null || fallbackUrl === appUrl) return false;
-		logger.warn('Migrated app origin failed to load, falling back to the legacy app URL', {failedUrl, ...detail});
-		appUrl = fallbackUrl;
-		reset();
-		load('legacy-fallback');
-		return true;
 	};
 	return {
 		start() {
-			webContents.on('did-navigate', (_event, url, httpResponseCode) => {
-				if (httpResponseCode >= HTTP_SERVER_ERROR_MIN && options.isTrustedUrl(url)) {
-					options.onCommitted();
-					if (fallBackFromMigratedOrigin(url, {httpResponseCode})) return;
-					serverErrorUrl = url;
-					schedule('http-server-error', {httpResponseCode, url});
-					return;
-				}
+			webContents.on('did-navigate', () => {
 				reset();
 				options.onCommitted();
-				if (httpResponseCode >= 400) {
-					fallBackFromMigratedOrigin(url, {httpResponseCode});
-				}
 			});
 			webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
 				if (isMainFrame) {
 					logger.error('App main-frame load failed', {errorCode, errorDescription, validatedURL});
 				}
 				if (!isMainFrame || !options.isTrustedUrl(validatedURL) || !isRetryableLoadError(errorCode)) {
-					return;
-				}
-				if (fallBackFromMigratedOrigin(validatedURL, {errorCode, errorDescription})) {
 					return;
 				}
 				schedule('did-fail-load', {errorCode, errorDescription, validatedURL});
@@ -139,9 +112,6 @@ export function createAppLoadRetry(options: AppLoadRetryOptions): AppLoadRetry {
 		retryNow() {
 			reset();
 			load('manual-retry');
-		},
-		getAppUrl() {
-			return appUrl;
 		},
 	};
 }

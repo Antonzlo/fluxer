@@ -6,6 +6,7 @@ import type {APIConfig, BlueskyOAuthConfig, BlueskyOAuthKeyConfig} from '@app/ap
 import {executeConditional, fetchMany, fetchOne, upsertOne} from '@app/api/database/CassandraQueryExecution';
 import {Db, type PreparedQuery} from '@app/api/database/CassandraTypes';
 import type {InstanceConfigurationRow} from '@app/api/database/types/InstanceConfigTypes';
+import {syncChannelThreadsConfig} from '@app/api/experiment/ChannelThreadsGate';
 import {
 	type AccountIdentity,
 	resolveAccountIdentity,
@@ -51,6 +52,11 @@ import {
 	type CaptchaConfigUpdateRequest,
 } from '@fluxer/schema/src/domains/admin/CaptchaSchemas';
 import {
+	type ChannelThreadsConfig,
+	type CompiledChannelThreadsConfig,
+	everyoneChannelThreadsConfig,
+} from '@fluxer/schema/src/domains/admin/ChannelThreadsSchemas';
+import {
 	type DomainMigrationConfig,
 	DomainMigrationConfigSchema,
 } from '@fluxer/schema/src/domains/admin/DomainMigrationSchemas';
@@ -63,10 +69,6 @@ import {
 	type StoredBillingConfig,
 	StoredBillingConfigSchema,
 } from '@fluxer/schema/src/domains/admin/InstanceBillingSchemas';
-import {
-	type PlutoniumPageConfig,
-	PlutoniumPageConfigSchema,
-} from '@fluxer/schema/src/domains/admin/PlutoniumPageSchemas';
 import {
 	type LegacyPushServiceDeliveryWire,
 	type PushRelayConfig,
@@ -94,8 +96,8 @@ import {z} from 'zod';
 const GATEWAY_ROLLOUT_CONFIG_KEY = 'gateway_rollout_config';
 const PUSH_RELAY_CONFIG_KEY = 'push_service_delivery_config';
 const DOMAIN_MIGRATION_CONFIG_KEY = 'domain_migration_config';
-const PLUTONIUM_PAGE_CONFIG_KEY = 'plutonium_page_config';
 const CAPTCHA_CONFIG_KEY = 'captcha_config';
+const CHANNEL_THREADS_CONFIG_KEY = 'channel_threads_config';
 const EXPERIMENT_DELIVERY_CONFIG_KEY = 'experiment_delivery_config';
 const REGISTRATION_CONFIG_KEY = 'registration_config';
 const REGISTRATION_URLS_KEY = 'registration_urls';
@@ -426,8 +428,8 @@ type StoredConfigSection =
 	| 'gateway rollout'
 	| 'push relay'
 	| 'domain migration'
-	| 'plutonium page'
 	| 'captcha'
+	| 'channel threads'
 	| 'experiment delivery'
 	| 'instance policy'
 	| 'integrations'
@@ -645,12 +647,15 @@ function parseStoredDomainMigrationConfig(raw: string | null): DomainMigrationCo
 	return parseStoredConfigOrDefault(DomainMigrationConfigSchema, raw, 'domain migration');
 }
 
-function parseStoredPlutoniumPageConfig(raw: string | null): PlutoniumPageConfig {
-	return parseStoredConfigOrDefault(PlutoniumPageConfigSchema, raw, 'plutonium page');
-}
-
 function parseStoredCaptchaConfig(raw: string | null): CaptchaConfig {
 	return parseStoredConfigOrDefault(CaptchaConfigSchema, raw, 'captcha');
+}
+
+const StoredChannelThreadsVersionSchema = z.object({config_version: z.number().int().min(0)});
+
+function parseStoredChannelThreadsConfig(raw: string | null): ChannelThreadsConfig {
+	const stored = StoredChannelThreadsVersionSchema.safeParse(readStoredConfigValue(raw, 'channel threads'));
+	return everyoneChannelThreadsConfig(stored.success ? stored.data.config_version : 0);
 }
 
 function parseStoredExperimentDeliveryConfig(raw: string | null): ExperimentDeliveryConfig {
@@ -1315,8 +1320,8 @@ export class InstanceConfigRepository {
 		);
 		parseStoredPushRelayConfig(snapshot.get(PUSH_RELAY_CONFIG_KEY) ?? null);
 		parseStoredDomainMigrationConfig(snapshot.get(DOMAIN_MIGRATION_CONFIG_KEY) ?? null);
-		parseStoredPlutoniumPageConfig(snapshot.get(PLUTONIUM_PAGE_CONFIG_KEY) ?? null);
 		parseStoredCaptchaConfig(snapshot.get(CAPTCHA_CONFIG_KEY) ?? null);
+		syncChannelThreadsConfig(snapshot.get(CHANNEL_THREADS_CONFIG_KEY) ?? null, parseStoredChannelThreadsConfig);
 		parseStoredExperimentDeliveryConfig(snapshot.get(EXPERIMENT_DELIVERY_CONFIG_KEY) ?? null);
 		parseStoredInstancePolicyConfig(snapshot.get(INSTANCE_POLICY_CONFIG_KEY) ?? null);
 		checkStoredConfig('registration', () =>
@@ -1366,6 +1371,7 @@ export class InstanceConfigRepository {
 
 	clearCacheForTesting(): void {
 		setCachedAccountIdentity(null);
+		syncChannelThreadsConfig(null, parseStoredChannelThreadsConfig);
 		const shutdown = this.shutdown();
 		this.configCache = this.createConfigCache(shutdown);
 		void shutdown.catch((error) => {
@@ -1557,23 +1563,6 @@ export class InstanceConfigRepository {
 		);
 	}
 
-	async getPlutoniumPageConfig(): Promise<PlutoniumPageConfig> {
-		const raw = await this.getConfig(PLUTONIUM_PAGE_CONFIG_KEY);
-		return parseStoredPlutoniumPageConfig(raw);
-	}
-
-	async setPlutoniumPageConfig(config: PlutoniumPageConfig): Promise<void> {
-		await this.updatePlutoniumPageConfig(() => config);
-	}
-
-	updatePlutoniumPageConfig(
-		update: (current: PlutoniumPageConfig) => PlutoniumPageConfig,
-	): Promise<PlutoniumPageConfig> {
-		return this.updateStoredConfig(PLUTONIUM_PAGE_CONFIG_KEY, (raw) =>
-			validateStoredConfig(PlutoniumPageConfigSchema, update(parseStoredPlutoniumPageConfig(raw)), 'plutonium page'),
-		);
-	}
-
 	async getCaptchaConfig(): Promise<CaptchaConfig> {
 		const raw = await this.getConfig(CAPTCHA_CONFIG_KEY);
 		return parseStoredCaptchaConfig(raw);
@@ -1583,6 +1572,20 @@ export class InstanceConfigRepository {
 		return this.updateStoredConfig(CAPTCHA_CONFIG_KEY, (raw) =>
 			validateStoredConfig(CaptchaConfigSchema, {...parseStoredCaptchaConfig(raw), ...patch}, 'captcha'),
 		);
+	}
+
+	async getChannelThreadsConfig(): Promise<ChannelThreadsConfig> {
+		return (await this.getCompiledChannelThreadsConfig()).config;
+	}
+
+	async getCompiledChannelThreadsConfig(): Promise<CompiledChannelThreadsConfig> {
+		const raw = await this.getConfig(CHANNEL_THREADS_CONFIG_KEY);
+		return syncChannelThreadsConfig(raw, parseStoredChannelThreadsConfig);
+	}
+
+	async refreshChannelThreadsConfig(): Promise<CompiledChannelThreadsConfig> {
+		const raw = await this.fetchConfigFromDatabase(CHANNEL_THREADS_CONFIG_KEY);
+		return syncChannelThreadsConfig(raw, parseStoredChannelThreadsConfig);
 	}
 
 	async getExperimentDeliveryConfig(): Promise<ExperimentDeliveryConfig> {

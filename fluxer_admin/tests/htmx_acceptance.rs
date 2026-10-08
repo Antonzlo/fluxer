@@ -469,7 +469,6 @@ async fn mutating_admin_pages_render_usable_csrf_tokens() {
                 "/instance-config?action=update_gateway_rollout",
                 "/instance-config?action=update_sso",
                 "/instance-config?action=update_domain_migration",
-                "/instance-config?action=update_plutonium_page",
                 "/instance-config?action=update_experiment_delivery",
             ][..],
         ),
@@ -483,6 +482,16 @@ async fn mutating_admin_pages_render_usable_csrf_tokens() {
             assert_form_has_csrf(&body, form_action, &csrf_token);
         }
     }
+}
+
+#[tokio::test]
+async fn instance_config_has_no_threads_or_plutonium_page_rollout_sections() {
+    let app = setup().await;
+    let body = get(&app, "/instance-config", &[]).await;
+    assert_full_layout(&body);
+    assert!(!body.contains("Threads and forums"), "{body}");
+    assert!(!body.contains("update_channel_threads"), "{body}");
+    assert!(!body.contains("update_plutonium_page"), "{body}");
 }
 
 #[tokio::test]
@@ -1192,14 +1201,6 @@ fn instance_config() -> Value {
             "excluded_user_ids": [],
             "anonymous_rollout_basis_points": 0,
             "standalone_forwarding": false
-        },
-        "plutonium_page": {
-            "enabled": false,
-            "config_version": 0,
-            "rollout_basis_points": 0,
-            "rollout_salt": "plutonium-page-v1",
-            "included_user_ids": [],
-            "excluded_user_ids": []
         },
         "experiment_delivery": {
             "poll_interval_seconds": 300,

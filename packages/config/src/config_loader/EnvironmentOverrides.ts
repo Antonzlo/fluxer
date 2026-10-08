@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {readFileSync} from 'node:fs';
 import {type ConfigObject, isConfigObject} from '@fluxer/config/src/config_loader/ConfigObject';
 
 type ConfigPathKey = string | number;
@@ -93,6 +94,7 @@ const NAMED_FLUXER_ENV_OVERRIDES: Record<string, NamedEnvOverride> = {
 		path: ['services', 'api', 'worker', 'enable_cron_scheduler'],
 		parse: parseBoolean,
 	},
+	FLUXER_API_WORKER_METRICS_PORT: {path: ['services', 'api', 'worker', 'metrics_port'], parse: parseInteger},
 	FLUXER_API_WORKER_LANE_CONCURRENCY_OVERRIDES: {
 		path: ['services', 'api', 'worker', 'lane_concurrency_overrides'],
 		parse: parseJsonObject,
@@ -187,6 +189,7 @@ const NAMED_FLUXER_ENV_OVERRIDES: Record<string, NamedEnvOverride> = {
 	FLUXER_STRIPE_PRICE_MONTHLY_BRL: {path: ['integrations', 'stripe', 'prices', 'monthly_brl']},
 	FLUXER_STRIPE_PRICE_MONTHLY_DKK: {path: ['integrations', 'stripe', 'prices', 'monthly_dkk']},
 	FLUXER_STRIPE_PRICE_MONTHLY_INR: {path: ['integrations', 'stripe', 'prices', 'monthly_inr']},
+	FLUXER_STRIPE_PRICE_MONTHLY_ISK: {path: ['integrations', 'stripe', 'prices', 'monthly_isk']},
 	FLUXER_STRIPE_PRICE_MONTHLY_NOK: {path: ['integrations', 'stripe', 'prices', 'monthly_nok']},
 	FLUXER_STRIPE_PRICE_MONTHLY_PLN: {path: ['integrations', 'stripe', 'prices', 'monthly_pln']},
 	FLUXER_STRIPE_PRICE_MONTHLY_SEK: {path: ['integrations', 'stripe', 'prices', 'monthly_sek']},
@@ -196,6 +199,7 @@ const NAMED_FLUXER_ENV_OVERRIDES: Record<string, NamedEnvOverride> = {
 	FLUXER_STRIPE_PRICE_YEARLY_BRL: {path: ['integrations', 'stripe', 'prices', 'yearly_brl']},
 	FLUXER_STRIPE_PRICE_YEARLY_DKK: {path: ['integrations', 'stripe', 'prices', 'yearly_dkk']},
 	FLUXER_STRIPE_PRICE_YEARLY_INR: {path: ['integrations', 'stripe', 'prices', 'yearly_inr']},
+	FLUXER_STRIPE_PRICE_YEARLY_ISK: {path: ['integrations', 'stripe', 'prices', 'yearly_isk']},
 	FLUXER_STRIPE_PRICE_YEARLY_NOK: {path: ['integrations', 'stripe', 'prices', 'yearly_nok']},
 	FLUXER_STRIPE_PRICE_YEARLY_PLN: {path: ['integrations', 'stripe', 'prices', 'yearly_pln']},
 	FLUXER_STRIPE_PRICE_YEARLY_SEK: {path: ['integrations', 'stripe', 'prices', 'yearly_sek']},
@@ -208,6 +212,8 @@ const NAMED_FLUXER_ENV_OVERRIDES: Record<string, NamedEnvOverride> = {
 	FLUXER_STRIPE_PRICE_GIFT_1_YEAR_DKK: {path: ['integrations', 'stripe', 'prices', 'gift_1_year_dkk']},
 	FLUXER_STRIPE_PRICE_GIFT_1_MONTH_NOK: {path: ['integrations', 'stripe', 'prices', 'gift_1_month_nok']},
 	FLUXER_STRIPE_PRICE_GIFT_1_YEAR_NOK: {path: ['integrations', 'stripe', 'prices', 'gift_1_year_nok']},
+	FLUXER_STRIPE_PRICE_GIFT_1_MONTH_ISK: {path: ['integrations', 'stripe', 'prices', 'gift_1_month_isk']},
+	FLUXER_STRIPE_PRICE_GIFT_1_YEAR_ISK: {path: ['integrations', 'stripe', 'prices', 'gift_1_year_isk']},
 	FLUXER_STRIPE_PRICE_GIFT_1_MONTH_BRL: {path: ['integrations', 'stripe', 'prices', 'gift_1_month_brl']},
 	FLUXER_STRIPE_PRICE_GIFT_1_MONTH_INR: {path: ['integrations', 'stripe', 'prices', 'gift_1_month_inr']},
 	FLUXER_STRIPE_PRICE_GIFT_1_MONTH_PLN: {path: ['integrations', 'stripe', 'prices', 'gift_1_month_pln']},
@@ -420,9 +426,27 @@ const NAMED_FLUXER_ENV_ALIASES: Record<string, string | undefined> = {
 
 export const NAMED_FLUXER_ENV_NAMES = Object.keys(NAMED_FLUXER_ENV_OVERRIDES);
 
-export function readEnvValue(env: NodeJS.ProcessEnv, name: string): string | undefined {
-	const value = env[name];
+function nonBlank(value: string | undefined): string | undefined {
 	return value === undefined || value.trim().length === 0 ? undefined : value;
+}
+
+export function readEnvValue(env: NodeJS.ProcessEnv, name: string): string | undefined {
+	const value = nonBlank(env[name]);
+	const filePath = nonBlank(env[`${name}_FILE`]);
+	if (filePath === undefined) {
+		return value;
+	}
+	if (value !== undefined) {
+		throw new Error(`${name} and ${name}_FILE are both set, set only one`);
+	}
+	let contents: string;
+	try {
+		contents = new TextDecoder('utf-8', {fatal: true}).decode(readFileSync(filePath));
+	} catch (error) {
+		const reason = error instanceof Error && 'code' in error ? String(error.code) : 'unreadable';
+		throw new Error(`${name}_FILE could not read ${filePath} (${reason})`);
+	}
+	return nonBlank(contents.replace(/\r?\n$/, ''));
 }
 
 export function buildNamedFluxerEnvOverrides(env: NodeJS.ProcessEnv): ConfigObject {

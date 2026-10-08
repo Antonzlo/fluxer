@@ -3,7 +3,6 @@
 import {ME} from '@fluxer/constants/src/AppConstants';
 
 export const Endpoints = {
-	INSTANCE: '/instance',
 	INSTANCE_SETUP_ACCOUNT_IDENTITY: '/instance/setup/account-identity',
 	ATTACHMENTS_REFRESH_URLS: '/attachments/refresh-urls',
 	AUTH_LOGIN: '/auth/login',
@@ -23,6 +22,7 @@ export const Endpoints = {
 	AUTH_HANDOFF_INFO: (code: string) => `/auth/handoff/${code}/info`,
 	AUTH_HANDOFF_STATUS: (code: string) => `/auth/handoff/${code}/status`,
 	AUTH_HANDOFF_CANCEL: (code: string) => `/auth/handoff/${code}`,
+	AUTH_HANDOFF_DENY: (code: string) => `/auth/handoff/${code}/deny`,
 	AUTH_PASSKEY_BRIDGE: '/auth/passkey-bridge',
 	AUTH_PASSKEY_BRIDGE_OPTIONS: (ceremonyId: string) => `/auth/passkey-bridge/${ceremonyId}/options`,
 	AUTH_PASSKEY_BRIDGE_COMPLETE: (ceremonyId: string) => `/auth/passkey-bridge/${ceremonyId}/complete`,
@@ -96,6 +96,19 @@ export const Endpoints = {
 	CHANNEL_CALL: (channelId: string) => `/channels/${channelId}/call`,
 	CHANNEL_CALL_RING: (channelId: string) => `/channels/${channelId}/call/ring`,
 	CHANNEL_CALL_STOP_RINGING: (channelId: string) => `/channels/${channelId}/call/stop-ringing`,
+	CHANNEL_THREADS: (channelId: string) => `/channels/${channelId}/threads`,
+	CHANNEL_MESSAGE_THREADS: (channelId: string, messageId: string) =>
+		`/channels/${channelId}/messages/${messageId}/threads`,
+	CHANNEL_THREADS_ARCHIVED_PUBLIC: (channelId: string) => `/channels/${channelId}/threads/archived/public`,
+	CHANNEL_THREADS_ARCHIVED_PRIVATE: (channelId: string) => `/channels/${channelId}/threads/archived/private`,
+	CHANNEL_THREADS_JOINED_ARCHIVED_PRIVATE: (channelId: string) =>
+		`/channels/${channelId}/users/@me/threads/archived/private`,
+	CHANNEL_THREAD_MEMBER: (channelId: string, userId = ME) => `/channels/${channelId}/thread-members/${userId}`,
+	CHANNEL_THREAD_MEMBER_SETTINGS: (channelId: string) => `/channels/${channelId}/thread-members/@me/settings`,
+	CHANNEL_THREADS_SEARCH: (channelId: string) => `/channels/${channelId}/threads/search`,
+	CHANNEL_POST_DATA: (channelId: string) => `/channels/${channelId}/post-data`,
+	CHANNEL_TAGS: (channelId: string) => `/channels/${channelId}/tags`,
+	CHANNEL_TAG: (channelId: string, tagId: string) => `/channels/${channelId}/tags/${tagId}`,
 	GUILDS: '/guilds',
 	GUILD: (guildId: string) => `/guilds/${guildId}`,
 	GUILD_CHANNELS: (guildId: string) => `/guilds/${guildId}/channels`,

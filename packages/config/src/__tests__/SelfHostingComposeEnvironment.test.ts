@@ -15,6 +15,7 @@ const API_SETTINGS_NOT_FORWARDED: Record<string, string> = {
 	FLUXER_API_WORKER_LANE: 'the one worker container runs every lane',
 	FLUXER_API_WORKER_TASK: 'the one worker container runs every lane',
 	FLUXER_API_WORKER_ENABLE_CRON_SCHEDULER: 'the one worker container hosts cron',
+	FLUXER_API_WORKER_METRICS_PORT: 'the stack scrapes no worker metrics',
 	FLUXER_RELAX_REGISTRATION_RATE_LIMITS: 'test and development only',
 	FLUXER_DISABLE_RATE_LIMITS: 'test and development only',
 	FLUXER_TEST_MODE_ENABLED: 'test and development only',
@@ -23,7 +24,7 @@ const API_SETTINGS_NOT_FORWARDED: Record<string, string> = {
 	FLUXER_API_AUTOMATED_MESSAGE_DELETION_DELAY_DAYS: 'automated account actions run only on the hosted service',
 	...Object.fromEntries(
 		['MONTHLY', 'YEARLY', 'GIFT_1_MONTH', 'GIFT_1_YEAR'].flatMap((slot) =>
-			['USD', 'EUR', 'BRL', 'DKK', 'INR', 'NOK', 'PLN', 'SEK', 'TRY'].map((currency) => [
+			['USD', 'EUR', 'BRL', 'DKK', 'INR', 'ISK', 'NOK', 'PLN', 'SEK', 'TRY'].map((currency) => [
 				`FLUXER_STRIPE_PRICE_${slot}_${currency}`,
 				'FLUXER_STRIPE_PRICES or the dashboard sets prices',
 			]),

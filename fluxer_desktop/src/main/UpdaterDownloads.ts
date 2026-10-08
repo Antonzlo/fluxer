@@ -1,6 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {BUILD_CHANNEL} from '@electron/common/BuildChannel';
+import {DOWNLOAD_PAGE_URLS} from '@electron/common/Constants';
+import {DESKTOP_ARTIFACT_PRODUCT_NAME} from '@electron/common/DesktopIdentity';
+import {
+	DESKTOP_DOWNLOAD_ARCH,
+	getUpdateBaseUrl,
+	isLinuxManualDesktopFormat,
+	LINUX_MANUAL_ARCH_TOKENS,
+	LINUX_MANUAL_FORMAT_EXTENSIONS,
+	type LinuxManualDesktopFormat,
+	type ManualDesktopFormat,
+} from '@electron/main/ShellDownloadFormats';
 
 export type UpdaterDownloadOption = {
 	format: ManualDesktopFormat;
@@ -10,35 +21,10 @@ export type UpdaterDownloadOption = {
 	sha256?: string | null;
 };
 
-type DesktopDownloadArch = 'x64' | 'arm64';
+export const UPDATE_BASE_URL = getUpdateBaseUrl();
+export const DOWNLOAD_PAGE_URL = DOWNLOAD_PAGE_URLS[BUILD_CHANNEL];
 
-function getDesktopDownloadArch(arch: NodeJS.Architecture): DesktopDownloadArch {
-	return arch === 'arm64' ? 'arm64' : 'x64';
-}
-
-const DESKTOP_DOWNLOAD_ARCH = getDesktopDownloadArch(process.arch);
-const PKGS_BASE_URL = 'https://pkgs.fluxer.com';
-// Windows builds of this fork are Velopack packages published as GitHub releases of the fork.
-// Elsewhere the feed is upstream's package server, which would replace this fork's build with upstream's,
-// so native updates there stay off unless FLUXER_NATIVE_UPDATES=1 is set. FLUXER_NATIVE_UPDATES=0 turns them off everywhere.
-const FORK_WINDOWS_UPDATE_BASE_URL = 'https://github.com/Antonzlo/fluxer/releases/latest/download';
-const FORK_WINDOWS_RELEASE_DOWNLOAD_URL = 'https://github.com/Antonzlo/fluxer/releases/download';
-const FORK_WINDOWS_SETUP_FILE = 'Potryasker-win-Setup.exe';
-export const FORK_WINDOWS_UPDATES = process.platform === 'win32';
-
-export const NATIVE_UPDATES_ENABLED =
-	process.env.FLUXER_NATIVE_UPDATES === '1' || (FORK_WINDOWS_UPDATES && process.env.FLUXER_NATIVE_UPDATES !== '0');
-export const UPDATE_BASE_URL = FORK_WINDOWS_UPDATES
-	? FORK_WINDOWS_UPDATE_BASE_URL
-	: `${PKGS_BASE_URL}/desktop/${BUILD_CHANNEL}/${process.platform}/${DESKTOP_DOWNLOAD_ARCH}`;
-export const DOWNLOAD_PAGE_URL =
-	BUILD_CHANNEL === 'canary' ? 'https://canary.fluxer.app/download' : 'https://fluxer.app/download';
-
-export const MANUAL_DESKTOP_FORMATS = ['setup', 'dmg', 'zip', 'appimage', 'deb', 'rpm', 'tar_gz'] as const;
-
-export type ManualDesktopFormat = (typeof MANUAL_DESKTOP_FORMATS)[number];
 export type ManualLatestFile = {url: string; sha256: string | null};
-type LinuxManualDesktopFormat = Extract<ManualDesktopFormat, 'appimage' | 'deb' | 'rpm' | 'tar_gz'>;
 
 export type ManualLatestInfo = {
 	version: string;
@@ -66,33 +52,12 @@ const LINUX_MANUAL_FORMAT_LABELS: Record<LinuxManualDesktopFormat, string> = {
 	tar_gz: 'tar.gz archive',
 };
 
-const LINUX_MANUAL_FORMAT_EXTENSIONS: Record<LinuxManualDesktopFormat, string> = {
-	appimage: '.AppImage',
-	deb: '.deb',
-	rpm: '.rpm',
-	tar_gz: '.tar.gz',
-};
-
-const LINUX_MANUAL_ARCH_TOKENS: Record<LinuxManualDesktopFormat, Record<DesktopDownloadArch, string>> = {
-	appimage: {x64: 'x86_64', arm64: 'arm64'},
-	deb: {x64: 'amd64', arm64: 'arm64'},
-	rpm: {x64: 'x86_64', arm64: 'aarch64'},
-	tar_gz: {x64: 'x64', arm64: 'arm64'},
-};
-
-function isLinuxManualDesktopFormat(format: ManualDesktopFormat): format is LinuxManualDesktopFormat {
-	return format === 'appimage' || format === 'deb' || format === 'rpm' || format === 'tar_gz';
-}
-
 export function buildManualVersionDownloadUrl(version: string, format: ManualDesktopFormat): string {
-	if (FORK_WINDOWS_UPDATES && format === 'setup') {
-		return `${FORK_WINDOWS_RELEASE_DOWNLOAD_URL}/v${version}/${FORK_WINDOWS_SETUP_FILE}`;
-	}
 	return `${UPDATE_BASE_URL}/${version}/${format}`;
 }
 
 function getArtifactProductName(): string {
-	return BUILD_CHANNEL === 'canary' ? 'Fluxer-Canary' : 'Fluxer';
+	return DESKTOP_ARTIFACT_PRODUCT_NAME;
 }
 
 function getManualUpdateSuggestedName(format: LinuxManualDesktopFormat, version: string): string {
