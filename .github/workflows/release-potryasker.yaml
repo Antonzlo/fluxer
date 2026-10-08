@@ -514,14 +514,21 @@ jobs:
     if: ${{ contains(github.event.head_commit.message, '[release-probe]') }}
     needs: meta
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 30
     steps:
-      - name: Create and delete a probe release
+      - name: Download installers from the finished run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: potryasker-{windows,rpm}
+          path: release-assets
+          merge-multiple: true
+          run-id: 37826154234
+          github-token: ${{ github.token }}
+      - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_DEBUG: api
-          VERSION: 9.9.7
+          VERSION: 0.2.3
         run: |
-          mkdir release-assets && echo x > release-assets/a.txt
-          gh release create "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "probe" --generate-notes
-          gh release delete "v${VERSION}" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+          ls -la release-assets
+          gh release create "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker ${VERSION}" --generate-notes
