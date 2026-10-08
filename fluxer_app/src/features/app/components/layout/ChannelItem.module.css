@@ -286,8 +286,7 @@
 .channelItemCategoryContextMenu .hoverAffordance,
 .channelItemCategory.keyboardFocus .hoverAffordance,
 .channelItemContextMenu .hoverAffordance,
-.channelItem.keyboardFocus .hoverAffordance,
-.channelItemSelected .hoverAffordance {
+.channelItem.keyboardFocus .hoverAffordance {
 	display: flex;
 }
 
@@ -297,6 +296,9 @@
 		.hoverAffordance,
 	:global(:where(html.window-focused, html.unfocused-fully-interactive):not(.window-focus-activation-guard))
 		.channelItemHoverable:hover
+		.hoverAffordance,
+	:global(:where(html.window-focused, html.unfocused-fully-interactive):not(.window-focus-activation-guard))
+		.channelItemSelected:hover
 		.hoverAffordance {
 		display: flex;
 	}
