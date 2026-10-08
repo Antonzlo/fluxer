@@ -292,12 +292,12 @@ jobs:
         run: pnpm exec electron-builder --config electron-builder.config.cjs --win --x64 --publish never
 
       # The upstream CI step refuses to pack without Azure signing, so call vpk directly (unsigned).
-      # The pack id must match WINDOWS_VELOPACK_IDS.stable in DesktopIdentity.ts.
+      # The pack id must match WINDOWS_VELOPACK_IDS.stable (potryasker) in DesktopIdentity.ts.
       - name: Package with Velopack (unsigned)
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
         run: >-
           .velopack/vpk.exe --yes pack
-          --packId fluxer_desktop
+          --packId potryasker
           --packVersion "$env:VERSION"
           --packDir dist-electron/win-unpacked
           --mainExe Potryasker.exe

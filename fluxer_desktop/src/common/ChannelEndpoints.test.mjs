@@ -24,7 +24,7 @@ describe('where each channel points', () => {
 
 	test('every channel maps to its own download page', () => {
 		assert.deepEqual(DOWNLOAD_PAGE_URLS, {
-			stable: 'https://fluxer.app/download',
+			stable: 'https://github.com/Antonzlo/fluxer/releases/latest',
 			canary: 'https://canary.fluxer.app/download',
 			development: 'http://localhost:8088/download',
 		});

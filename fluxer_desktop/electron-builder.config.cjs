@@ -9,13 +9,13 @@ const execFileAsync = promisify(execFile);
 const CHANNELS = {
 	stable: {
 		productName: 'Potryasker',
-		linuxOptDirName: 'Fluxer',
+		linuxOptDirName: 'Potryasker',
 		artifactProductName: 'Potryasker',
 		appId: 'app.potryasker',
 		iconDirectory: 'icons-stable',
 		packageName: 'fluxer_desktop',
-		linuxPackageName: 'fluxer',
-		linuxDesktopId: 'app.fluxer.FluxerDesktop',
+		linuxPackageName: 'potryasker',
+		linuxDesktopId: 'app.potryasker.Desktop',
 		linuxComment: 'Instant messaging and VoIP',
 		protocolScheme: 'fluxer',
 		macEntitlements: 'build_resources/entitlements.mac.stable.plist',

@@ -3,42 +3,42 @@
 import {BUILD_CHANNEL, type BuildChannel} from '@electron/common/BuildChannel';
 
 const DESKTOP_APP_NAMES: Record<BuildChannel, string> = {
-	stable: 'Fluxer',
+	stable: 'Potryasker',
 	canary: 'Fluxer Canary',
 	development: 'Fluxer Development',
 };
 const DESKTOP_ARTIFACT_PRODUCT_NAMES: Record<BuildChannel, string> = {
-	stable: 'Fluxer',
+	stable: 'Potryasker',
 	canary: 'Fluxer-Canary',
 	development: 'Fluxer-Development',
 };
 const MACOS_BUNDLE_IDS: Record<BuildChannel, string> = {
-	stable: 'app.fluxer',
+	stable: 'app.potryasker',
 	canary: 'app.fluxer.canary',
 	development: 'app.fluxer.development',
 };
 const LINUX_DESKTOP_ENTRY_IDS: Record<BuildChannel, string> = {
-	stable: 'app.fluxer.FluxerDesktop',
+	stable: 'app.potryasker.Desktop',
 	canary: 'app.fluxer.FluxerDesktopCanary',
 	development: 'app.fluxer.FluxerDesktopDevelopment',
 };
 const LEGACY_LINUX_DESKTOP_ENTRY_IDS: Record<BuildChannel, string> = {
-	stable: 'fluxer',
+	stable: 'potryasker',
 	canary: 'fluxer-canary',
 	development: 'fluxer-development',
 };
 const LINUX_PORTAL_SESSION_TOKENS: Record<BuildChannel, string> = {
-	stable: 'fluxer_global_shortcuts',
+	stable: 'potryasker_global_shortcuts',
 	canary: 'fluxer_canary_global_shortcuts',
 	development: 'fluxer_development_global_shortcuts',
 };
 const WINDOWS_VELOPACK_IDS: Record<BuildChannel, string> = {
-	stable: 'fluxer_desktop',
+	stable: 'potryasker',
 	canary: 'fluxer_desktop_canary',
 	development: 'fluxer_desktop_development',
 };
 const WINDOWS_APP_USER_MODEL_IDS: Record<BuildChannel, string> = {
-	stable: 'Fluxer.Fluxer',
+	stable: 'Potryasker.Potryasker',
 	canary: 'Fluxer.Fluxer.Canary',
 	development: 'Fluxer.Fluxer.Development',
 };

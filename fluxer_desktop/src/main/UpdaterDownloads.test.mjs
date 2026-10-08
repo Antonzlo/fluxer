@@ -38,7 +38,7 @@ function loadUpdaterDownloads({channel = 'stable', platform = 'linux', arch = 'x
 		if (specifier === '@electron/common/Constants') {
 			return {
 				DOWNLOAD_PAGE_URLS: {
-					stable: 'https://fluxer.app/download',
+					stable: 'https://github.com/Antonzlo/fluxer/releases/latest',
 					canary: 'https://canary.fluxer.app/download',
 					development: 'http://localhost:8088/download',
 				},
@@ -227,7 +227,10 @@ describe('UpdaterDownloads manual download url', () => {
 		const stable = loadUpdaterDownloads({channel: 'stable', platform: 'darwin'});
 		const canary = loadUpdaterDownloads({channel: 'canary', platform: 'win32'});
 
-		assert.equal(stable.getManualDownloadUrl(latestInfo('2026.910.101500')), 'https://fluxer.app/download');
+		assert.equal(
+			stable.getManualDownloadUrl(latestInfo('2026.910.101500')),
+			'https://github.com/Antonzlo/fluxer/releases/latest',
+		);
 		assert.equal(canary.getManualDownloadUrl(latestInfo('2026.910.101500')), 'https://canary.fluxer.app/download');
 	});
 });

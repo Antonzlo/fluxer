@@ -8,7 +8,7 @@ import {afterEach, beforeEach, describe, test} from 'node:test';
 import {loadTsModule} from './fixtures/TsModuleLoader.mjs';
 
 const EXEC_PATH = '/opt/Fluxer/fluxer';
-const DESKTOP_NAME = 'app.fluxer.FluxerDesktop.desktop';
+const DESKTOP_NAME = 'app.potryasker.Desktop.desktop';
 const protocolRegistrations = [];
 const inProcessRegistrations = [];
 const childProcessCalls = [];
@@ -64,8 +64,8 @@ function parseMainGroup(contents) {
 describe('LinuxDesktopEntry contents', () => {
 	test('uses the reverse-DNS desktop id for window matching and keeps the packaged icon name', () => {
 		const entry = parseMainGroup(desktopEntry.buildDesktopFileContents(EXEC_PATH, false));
-		assert.equal(entry.get('StartupWMClass'), 'app.fluxer.FluxerDesktop');
-		assert.equal(entry.get('Icon'), 'fluxer');
+		assert.equal(entry.get('StartupWMClass'), 'app.potryasker.Desktop');
+		assert.equal(entry.get('Icon'), 'potryasker');
 		assert.equal(entry.get('Exec'), `"${EXEC_PATH}" %U`);
 		assert.equal(entry.get('TryExec'), EXEC_PATH);
 		assert.equal(entry.get('MimeType'), 'x-scheme-handler/fluxer;');
@@ -130,15 +130,15 @@ describe('ensureLinuxDesktopEntry', () => {
 
 	test('writes the new entry and removes only the generated legacy entry', () => {
 		fs.mkdirSync(userDir(), {recursive: true});
-		fs.writeFileSync(path.join(userDir(), 'fluxer.desktop'), `[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`);
+		fs.writeFileSync(path.join(userDir(), 'potryasker.desktop'), `[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`);
 		fs.writeFileSync(
 			path.join(userDir(), 'fluxer-canary.desktop'),
 			`[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`,
 		);
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), true);
-		assert.equal(fs.existsSync(path.join(userDir(), 'fluxer.desktop')), false);
+		assert.equal(fs.existsSync(path.join(userDir(), 'potryasker.desktop')), false);
 		assert.equal(fs.existsSync(path.join(userDir(), 'fluxer-canary.desktop')), true);
-		const written = fs.readFileSync(path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop'), 'utf8');
+		const written = fs.readFileSync(path.join(userDir(), 'app.potryasker.Desktop.desktop'), 'utf8');
 		assert.equal(written, desktopEntry.buildDesktopFileContents(EXEC_PATH, false));
 		assert.deepEqual(
 			fs.readdirSync(userDir()).filter((name) => name.endsWith('.tmp')),
@@ -149,46 +149,46 @@ describe('ensureLinuxDesktopEntry', () => {
 
 	test('leaves a hand-written legacy entry alone', () => {
 		fs.mkdirSync(userDir(), {recursive: true});
-		fs.writeFileSync(path.join(userDir(), 'fluxer.desktop'), '[Desktop Entry]\nExec=/somewhere/else\n');
+		fs.writeFileSync(path.join(userDir(), 'potryasker.desktop'), '[Desktop Entry]\nExec=/somewhere/else\n');
 		desktopEntry.ensureLinuxDesktopEntry();
-		assert.equal(fs.existsSync(path.join(userDir(), 'fluxer.desktop')), true);
+		assert.equal(fs.existsSync(path.join(userDir(), 'potryasker.desktop')), true);
 	});
 
 	test('a system entry wins and removes a generated user copy', () => {
 		fs.mkdirSync(systemDir(), {recursive: true});
-		fs.writeFileSync(path.join(systemDir(), 'app.fluxer.FluxerDesktop.desktop'), '[Desktop Entry]\n');
+		fs.writeFileSync(path.join(systemDir(), 'app.potryasker.Desktop.desktop'), '[Desktop Entry]\n');
 		fs.mkdirSync(userDir(), {recursive: true});
 		fs.writeFileSync(
-			path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop'),
+			path.join(userDir(), 'app.potryasker.Desktop.desktop'),
 			desktopEntry.buildDesktopFileContents(EXEC_PATH, false),
 		);
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), true);
-		assert.equal(fs.existsSync(path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop')), false);
+		assert.equal(fs.existsSync(path.join(userDir(), 'app.potryasker.Desktop.desktop')), false);
 	});
 
 	test('a system entry under the previous desktop id keeps the new user entry out of menus', () => {
 		fs.mkdirSync(systemDir(), {recursive: true});
-		fs.writeFileSync(path.join(systemDir(), 'fluxer.desktop'), '[Desktop Entry]\nExec=/usr/bin/fluxer\n');
+		fs.writeFileSync(path.join(systemDir(), 'potryasker.desktop'), '[Desktop Entry]\nExec=/usr/bin/potryasker\n');
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), true);
-		const written = fs.readFileSync(path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop'), 'utf8');
+		const written = fs.readFileSync(path.join(userDir(), 'app.potryasker.Desktop.desktop'), 'utf8');
 		assert.equal(written, desktopEntry.buildDesktopFileContents(EXEC_PATH, true));
-		assert.equal(fs.existsSync(path.join(systemDir(), 'fluxer.desktop')), true);
+		assert.equal(fs.existsSync(path.join(systemDir(), 'potryasker.desktop')), true);
 	});
 
 	test('FLUXER_DISABLE_DESKTOP_FILE leaves launchers and the scheme handler alone', () => {
 		process.env.FLUXER_DISABLE_DESKTOP_FILE = '1';
 		fs.mkdirSync(userDir(), {recursive: true});
-		fs.writeFileSync(path.join(userDir(), 'fluxer.desktop'), `[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`);
+		fs.writeFileSync(path.join(userDir(), 'potryasker.desktop'), `[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`);
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), false);
-		assert.equal(fs.existsSync(path.join(userDir(), 'fluxer.desktop')), true);
-		assert.equal(fs.existsSync(path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop')), false);
+		assert.equal(fs.existsSync(path.join(userDir(), 'potryasker.desktop')), true);
+		assert.equal(fs.existsSync(path.join(userDir(), 'app.potryasker.Desktop.desktop')), false);
 		assert.deepEqual(protocolRegistrations, []);
 	});
 
 	test('FLUXER_DISABLE_DESKTOP_FILE still reports an entry the user installed', () => {
 		process.env.FLUXER_DISABLE_DESKTOP_FILE = '1';
 		fs.mkdirSync(userDir(), {recursive: true});
-		fs.writeFileSync(path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop'), '[Desktop Entry]\n');
+		fs.writeFileSync(path.join(userDir(), 'app.potryasker.Desktop.desktop'), '[Desktop Entry]\n');
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), true);
 		assert.deepEqual(protocolRegistrations, []);
 	});
@@ -196,17 +196,17 @@ describe('ensureLinuxDesktopEntry', () => {
 	test('FLUXER_DISABLE_DESKTOP_FILE still points the scheme handler at a packaged entry', () => {
 		process.env.FLUXER_DISABLE_DESKTOP_FILE = '1';
 		fs.mkdirSync(systemDir(), {recursive: true});
-		fs.writeFileSync(path.join(systemDir(), 'app.fluxer.FluxerDesktop.desktop'), '[Desktop Entry]\n');
+		fs.writeFileSync(path.join(systemDir(), 'app.potryasker.Desktop.desktop'), '[Desktop Entry]\n');
 		fs.mkdirSync(userDir(), {recursive: true});
-		fs.writeFileSync(path.join(userDir(), 'fluxer.desktop'), `[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`);
+		fs.writeFileSync(path.join(userDir(), 'potryasker.desktop'), `[Desktop Entry]\n${desktopEntry.GENERATED_MARKER}\n`);
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), true);
-		assert.equal(fs.existsSync(path.join(userDir(), 'fluxer.desktop')), true);
+		assert.equal(fs.existsSync(path.join(userDir(), 'potryasker.desktop')), true);
 		assert.deepEqual(protocolRegistrations, ['fluxer']);
 	});
 
 	const installSystemEntry = () => {
 		fs.mkdirSync(systemDir(), {recursive: true});
-		fs.writeFileSync(path.join(systemDir(), 'app.fluxer.FluxerDesktop.desktop'), '[Desktop Entry]\n');
+		fs.writeFileSync(path.join(systemDir(), 'app.potryasker.Desktop.desktop'), '[Desktop Entry]\n');
 	};
 
 	test('the scheme handler is registered off the main thread with a bounded xdg-mime call', () => {
@@ -249,7 +249,7 @@ describe('ensureLinuxDesktopEntry', () => {
 	test('an unpackaged run leaves launchers and the scheme handler alone', () => {
 		electronApp.isPackaged = false;
 		assert.equal(desktopEntry.ensureLinuxDesktopEntry(), false);
-		assert.equal(fs.existsSync(path.join(userDir(), 'app.fluxer.FluxerDesktop.desktop')), false);
+		assert.equal(fs.existsSync(path.join(userDir(), 'app.potryasker.Desktop.desktop')), false);
 		assert.deepEqual(protocolRegistrations, []);
 	});
 });

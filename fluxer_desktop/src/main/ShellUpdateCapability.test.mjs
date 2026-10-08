@@ -339,7 +339,7 @@ describe('blocked shell update states', () => {
 
 	test('the download page is a channel aware page, never an artifact', () => {
 		assert.equal(shouldOpenExternalUrl(DOWNLOAD_PAGE_URL), true);
-		assert.equal(new URL(DOWNLOAD_PAGE_URL).pathname, '/download');
+		assert.equal(new URL(DOWNLOAD_PAGE_URL).pathname, '/Antonzlo/fluxer/releases/latest');
 	});
 
 	test('every picker entry resolves to the latest linux artifact route for the running arch', () => {

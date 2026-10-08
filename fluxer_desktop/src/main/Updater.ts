@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import {BUILD_CHANNEL} from '@electron/common/BuildChannel';
 import {checkDesktopUpdateNow} from '@electron/main/DesktopUpdateGate';
 import {MANUAL_DESKTOP_FORMATS, type ManualDesktopFormat} from '@electron/main/ShellDownloadFormats';
 import {resolveShellUpdatePlan, ShellUpdateCapability} from '@electron/main/ShellUpdateCapability';
@@ -107,10 +108,57 @@ function parseManualLatestFiles(value: unknown): Partial<Record<ManualDesktopFor
 	return files;
 }
 
+// Potryasker: stable builds read the latest release of this fork instead of an upstream package host.
+const FORK_RELEASES_API = 'https://api.github.com/repos/Antonzlo/fluxer/releases/latest';
+const FORK_ASSET_FORMATS: ReadonlyArray<[RegExp, ManualDesktopFormat]> = [
+	[/-setup-win-x64\.exe$/u, 'setup'],
+	[/\.rpm$/u, 'rpm'],
+	[/\.deb$/u, 'deb'],
+	[/\.appimage$/iu, 'appimage'],
+	[/\.tar\.gz$/u, 'tar_gz'],
+	[/\.dmg$/u, 'dmg'],
+];
+
+async function fetchForkLatest(): Promise<ManualLatestInfo> {
+	const response = await net.fetch(FORK_RELEASES_API, {
+		cache: 'no-store',
+		headers: {Accept: 'application/vnd.github+json'},
+	});
+	if (!response.ok) {
+		throw new Error(`Latest release request failed: ${response.status}`);
+	}
+	const release = (await response.json()) as {
+		tag_name?: unknown;
+		published_at?: unknown;
+		assets?: Array<{name?: unknown; browser_download_url?: unknown; digest?: unknown}>;
+	};
+	if (typeof release.tag_name !== 'string' || release.tag_name.length === 0) {
+		throw new Error('Latest release response missing tag name');
+	}
+	const files: Partial<Record<ManualDesktopFormat, ManualLatestFile>> = {};
+	for (const asset of release.assets ?? []) {
+		if (typeof asset.name !== 'string' || typeof asset.browser_download_url !== 'string') continue;
+		const format = FORK_ASSET_FORMATS.find(([pattern]) => pattern.test(asset.name as string))?.[1];
+		if (format == null || files[format] != null) continue;
+		const digest = typeof asset.digest === 'string' ? asset.digest.replace(/^sha256:/u, '') : null;
+		files[format] = {url: asset.browser_download_url, sha256: digest};
+	}
+	return {
+		version: release.tag_name.replace(/^v/u, ''),
+		pubDate: typeof release.published_at === 'string' ? release.published_at : null,
+		files,
+	};
+}
+
 async function fetchManualLatest(options: {forceRefresh?: boolean} = {}): Promise<ManualLatestInfo> {
 	const now = Date.now();
 	if (!options.forceRefresh && manualLatestCache && now - manualLatestCache.at < MANUAL_CACHE_TTL_MS) {
 		return manualLatestCache.info;
+	}
+	if (BUILD_CHANNEL === 'stable') {
+		const info = await fetchForkLatest();
+		manualLatestCache = {at: now, info};
+		return info;
 	}
 	const response = await net.fetch(`${UPDATE_BASE_URL}/latest`, {
 		cache: 'no-store',

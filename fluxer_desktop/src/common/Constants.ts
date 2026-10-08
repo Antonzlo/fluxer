@@ -27,7 +27,7 @@ const POTRYASKER_INSTANCE_URL = 'https://fluxer.pitzuna.com';
 export const LOCAL_DEVELOPMENT_INSTANCE_URL =
 	BUILD_CHANNEL === 'development' ? DEVELOPMENT_APP_URL : POTRYASKER_INSTANCE_URL;
 export const DOWNLOAD_PAGE_URLS: Record<BuildChannel, string> = {
-	stable: 'https://fluxer.app/download',
+	stable: 'https://github.com/Antonzlo/fluxer/releases/latest',
 	canary: 'https://canary.fluxer.app/download',
 	development: 'http://localhost:8088/download',
 };

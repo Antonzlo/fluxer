@@ -30,12 +30,12 @@ const LEGACY = [
 	'Name=Fluxer',
 	'Exec="/opt/Fluxer/fluxer" --autostart --ozone-platform=x11',
 	'TryExec=/opt/Fluxer/fluxer',
-	'StartupWMClass=fluxer',
+	'StartupWMClass=potryasker',
 	'X-GNOME-Autostart-enabled=false',
 	'X-GNOME-Autostart-Delay=10',
 	'',
 	'[Desktop Action other]',
-	'StartupWMClass=fluxer',
+	'StartupWMClass=potryasker',
 	'',
 ].join('\n');
 
@@ -44,7 +44,7 @@ describe('rewriteLegacyLinuxAutostartContents', () => {
 		const rewritten = autostart.rewriteLegacyLinuxAutostartContents(LEGACY, '/opt/Fluxer/fluxer', false);
 		assert.equal(
 			rewritten,
-			LEGACY.replace('StartupWMClass=fluxer\nX-GNOME', 'StartupWMClass=app.fluxer.FluxerDesktop\nX-GNOME'),
+			LEGACY.replace('StartupWMClass=potryasker\nX-GNOME', 'StartupWMClass=app.potryasker.Desktop\nX-GNOME'),
 		);
 	});
 
@@ -55,7 +55,7 @@ describe('rewriteLegacyLinuxAutostartContents', () => {
 		assert.ok(lines.includes('TryExec=/home/u/Fluxer.AppImage'));
 		assert.ok(lines.includes('X-GNOME-Autostart-enabled=false'));
 		assert.ok(lines.includes('X-GNOME-Autostart-Delay=10'));
-		assert.equal(lines.filter((line) => line === 'StartupWMClass=fluxer').length, 1);
+		assert.equal(lines.filter((line) => line === 'StartupWMClass=potryasker').length, 1);
 	});
 });
 
@@ -98,18 +98,18 @@ describe('Linux autostart with an entry left under the previous desktop id', () 
 			else process.env.XDG_CONFIG_HOME = previousConfig;
 		});
 		fs.mkdirSync(dir, {recursive: true});
-		const legacyPath = path.join(dir, 'fluxer.desktop');
+		const legacyPath = path.join(dir, 'potryasker.desktop');
 		fs.writeFileSync(
 			legacyPath,
 			[
 				'[Desktop Entry]',
 				`Exec="${process.execPath}" --autostart`,
 				`TryExec=${process.execPath}`,
-				'StartupWMClass=fluxer',
+				'StartupWMClass=potryasker',
 				'',
 			].join('\n'),
 		);
-		fs.mkdirSync(path.join(dir, `app.fluxer.FluxerDesktop.desktop.${process.pid}.tmp`, 'blocker'), {recursive: true});
+		fs.mkdirSync(path.join(dir, `app.potryasker.Desktop.desktop.${process.pid}.tmp`, 'blocker'), {recursive: true});
 		const {module, handlers} = loadLinuxAutostart();
 		module.registerAutostartHandlers();
 		await new Promise((resolve) => setTimeout(resolve, 50));
@@ -131,7 +131,7 @@ describe('Linux autostart with an entry left under the previous desktop id', () 
 		});
 		const dir = path.join(root, 'autostart');
 		fs.mkdirSync(dir, {recursive: true});
-		const legacyPath = path.join(dir, 'fluxer.desktop');
+		const legacyPath = path.join(dir, 'potryasker.desktop');
 		fs.writeFileSync(legacyPath, ['[Desktop Entry]', `Exec="${process.execPath}" --autostart`, ''].join('\n'));
 		const {module, handlers} = loadLinuxAutostart();
 		module.registerAutostartHandlers();

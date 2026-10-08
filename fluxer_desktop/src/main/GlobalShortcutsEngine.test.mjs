@@ -132,7 +132,7 @@ function createEngine({
 					},
 					desktop: 'gnome',
 					plasma5: false,
-					portalAppId: 'app.fluxer.FluxerDesktop',
+					portalAppId: 'app.potryasker.Desktop',
 					getConsent: () => harness.consent,
 					setConsent: (consent) => {
 						harness.consent = consent;

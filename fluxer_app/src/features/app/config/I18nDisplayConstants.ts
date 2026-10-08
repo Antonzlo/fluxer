@@ -53,7 +53,7 @@ export const EXAMPLE_MESSAGE_LINK = `${LINK_PREVIEW_EXAMPLE_URL}/channels/...`;
 export const EXAMPLE_GIF_URLS = `${EXAMPLE_URL}/gif1.gif\n${EXAMPLE_URL}/gif2.gif`;
 export const THE_OTHER_PLATFORM_TEMPLATE_EXAMPLE_URL = `https://${THE_OTHER_PLATFORM.toLowerCase()}.new/abcd1234`;
 const DESKTOP_DOWNLOAD_URLS: Record<string, string> = {
-	stable: 'https://fluxer.app/download',
+	stable: 'https://github.com/Antonzlo/fluxer/releases/latest',
 	canary: 'https://canary.fluxer.app/download',
 	development: 'http://localhost:8088/download',
 };
