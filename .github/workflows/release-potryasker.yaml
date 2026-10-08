@@ -179,6 +179,26 @@ jobs:
         with:
           toolchain: "1.98.1"
 
+      - name: Cache cargo registry
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            source/target
+            _ci/target
+          key: ${{ runner.os }}-potryasker-cargo-registry-${{ hashFiles('source/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-cargo-registry-
+
+      - name: Cache native addon build output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: C:\fcargo
+          key: ${{ runner.os }}-potryasker-native-${{ hashFiles('source/fluxer_desktop/native/**/Cargo.lock', 'source/fluxer_desktop/native/**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-native-
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -210,26 +230,6 @@ jobs:
           key: ${{ runner.os }}-potryasker-pnpm-store-${{ hashFiles('source/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-potryasker-pnpm-store-
-
-      - name: Cache cargo registry
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            source/target
-            _ci/target
-          key: ${{ runner.os }}-potryasker-cargo-registry-${{ hashFiles('source/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-potryasker-cargo-registry-
-
-      - name: Cache native addon build output
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: C:\fcargo
-          key: ${{ runner.os }}-potryasker-native-${{ hashFiles('source/fluxer_desktop/native/**/Cargo.lock', 'source/fluxer_desktop/native/**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-potryasker-native-
 
       - name: Cache Electron and electron-builder downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
