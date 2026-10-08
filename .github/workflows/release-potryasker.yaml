@@ -28,7 +28,7 @@ env:
   BUILD_CHANNEL: stable
   RELEASE_CHANNEL: stable
   PUBLIC_RELEASE_CHANNEL: stable
-  CI_MANIFEST: ${{ github.workspace }}/source/tools/ci/Cargo.toml
+  CI_MANIFEST: ${{ github.workspace }}/_ci/tools/ci/Cargo.toml
 
 jobs:
   meta:
@@ -59,6 +59,11 @@ jobs:
       PUBLIC_BUILD_VERSION: ${{ needs.meta.outputs.version }}
       SOURCE_SHA: ${{ github.sha }}
     steps:
+      - name: Checkout CI helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: _ci
+
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -77,7 +82,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             source/target
-            source/tools/ci/target
+            _ci/target
           key: ${{ runner.os }}-potryasker-renderer-cargo-${{ hashFiles('source/**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-potryasker-renderer-cargo-
@@ -152,6 +157,11 @@ jobs:
       ELECTRON_ARCH: x64
       FLUXER_CARGO_TARGET_BASE: C:\fcargo
     steps:
+      - name: Checkout CI helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: _ci
+
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -200,7 +210,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            source/tools/ci/target
+            _ci/target
           key: ${{ runner.os }}-potryasker-cargo-registry-${{ hashFiles('source/**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-potryasker-cargo-registry-
@@ -320,7 +330,7 @@ jobs:
   rpm:
     name: Build RPM (x64)
     needs: [meta, renderer]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     env:
       VERSION: ${{ needs.meta.outputs.version }}
@@ -334,6 +344,11 @@ jobs:
       ARCH: x64
       ELECTRON_ARCH: x64
     steps:
+      - name: Checkout CI helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: _ci
+
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -351,11 +366,11 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            source/tools/ci/target
+            _ci/target
             source/fluxer_desktop/native/*/target
-          key: ${{ runner.os }}-potryasker-native-${{ hashFiles('source/**/Cargo.lock') }}
+          key: ${{ runner.os }}-22.04-potryasker-native-${{ hashFiles('source/**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-potryasker-native-
+            ${{ runner.os }}-22.04-potryasker-native-
 
       - name: Cache Electron and electron-builder downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
