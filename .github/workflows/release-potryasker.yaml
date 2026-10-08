@@ -514,21 +514,27 @@ jobs:
     if: ${{ contains(github.event.head_commit.message, '[release-probe]') }}
     needs: meta
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
-      - name: Download installers from the finished run
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          pattern: potryasker-{windows,rpm}
-          path: release-assets
-          merge-multiple: true
-          run-id: 37826154234
-          github-token: ${{ github.token }}
-      - name: Publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_DEBUG: api
-          VERSION: 0.2.3
+      - name: A tag v0.2.9, notes generated
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
         run: |
-          ls -la release-assets
-          gh release create "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker ${VERSION}" --generate-notes
+          mkdir -p ra && echo x > ra/a.txt
+          gh release create v0.2.9 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title p --generate-notes
+      - name: B tag v0.2.8, plain notes
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: gh release create v0.2.8 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title p --notes x
+      - name: C tag v9.9.6, notes generated
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: gh release create v9.9.6 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title p --generate-notes
+      - name: D tag v0.2.7, target main-ish old commit f3db565, plain notes
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: gh release create v0.2.7 ra/a.txt --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title p --notes x
+      - name: Cleanup
+        if: always()
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: for t in v0.2.9 v0.2.8 v9.9.6 v0.2.7; do gh release delete "$t" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true; done
