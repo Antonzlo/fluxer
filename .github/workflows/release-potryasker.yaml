@@ -56,6 +56,7 @@ jobs:
           echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
   renderer:
+    if: ${{ !contains(github.event.head_commit.message, '[release-probe]') }}
     name: Build renderer assets
     needs: meta
     runs-on: ubuntu-24.04
@@ -147,6 +148,7 @@ jobs:
           compression-level: 0
 
   windows:
+    if: ${{ !contains(github.event.head_commit.message, '[release-probe]') }}
     name: Build Windows NSIS and Velopack (x64)
     needs: [meta, renderer]
     runs-on: windows-2025
@@ -341,6 +343,7 @@ jobs:
           compression-level: 0
 
   rpm:
+    if: ${{ !contains(github.event.head_commit.message, '[release-probe]') }}
     name: Build RPM (x64)
     needs: [meta, renderer]
     runs-on: ubuntu-22.04
@@ -505,3 +508,20 @@ jobs:
             --title "Potryasker ${VERSION}" \
             --generate-notes \
             "${flags[@]}"
+
+  probe:
+    name: Release probe
+    if: ${{ contains(github.event.head_commit.message, '[release-probe]') }}
+    needs: meta
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Create and delete a probe release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_DEBUG: api
+          VERSION: 9.9.7
+        run: |
+          mkdir release-assets && echo x > release-assets/a.txt
+          gh release create "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "probe" --generate-notes
+          gh release delete "v${VERSION}" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
