@@ -11963,6 +11963,11 @@ msgstr "Gỡ lỗi thành viên"
 msgid "Debug message"
 msgstr "Gỡ lỗi tin nhắn"
 
+#. Developer-mode action that opens the thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:113
+msgid "Debug thread"
+msgstr "Gỡ lỗi luồng"
+
 #. Channel details bottom sheet label or action (channel type, settings, toast, confirmation, or notification option).
 #. Developer-mode action that opens a user debug panel.
 #: src/features/channel/components/bottomsheets/channel_details_bottom_sheet/ChannelDetailsBottomSheetShared.ts:162
@@ -36368,6 +36373,11 @@ msgstr "Luồng"
 #: src/features/app/config/AuditLogConstants.ts:375
 msgid "Thread created"
 msgstr "Luồng được tạo"
+
+#. Title of the developer-mode thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:117
+msgid "Thread debug"
+msgstr "Gỡ lỗi luồng"
 
 #. Activity log action filter option for threads that were deleted.
 #. Toast after a thread was deleted.

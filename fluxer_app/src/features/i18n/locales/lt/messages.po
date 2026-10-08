@@ -11963,6 +11963,11 @@ msgstr "Derinti narį"
 msgid "Debug message"
 msgstr "Derinti žinutę"
 
+#. Developer-mode action that opens the thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:113
+msgid "Debug thread"
+msgstr "Derinti giją"
+
 #. Channel details bottom sheet label or action (channel type, settings, toast, confirmation, or notification option).
 #. Developer-mode action that opens a user debug panel.
 #: src/features/channel/components/bottomsheets/channel_details_bottom_sheet/ChannelDetailsBottomSheetShared.ts:162
@@ -36369,6 +36374,11 @@ msgstr "Gija"
 #: src/features/app/config/AuditLogConstants.ts:375
 msgid "Thread created"
 msgstr "Sukurta tema"
+
+#. Title of the developer-mode thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:117
+msgid "Thread debug"
+msgstr "Gijos derinimas"
 
 #. Activity log action filter option for threads that were deleted.
 #. Toast after a thread was deleted.

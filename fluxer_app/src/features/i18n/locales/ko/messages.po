@@ -11963,6 +11963,11 @@ msgstr "멤버 디버그"
 msgid "Debug message"
 msgstr "메시지 디버그"
 
+#. Developer-mode action that opens the thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:113
+msgid "Debug thread"
+msgstr "스레드 디버그"
+
 #. Channel details bottom sheet label or action (channel type, settings, toast, confirmation, or notification option).
 #. Developer-mode action that opens a user debug panel.
 #: src/features/channel/components/bottomsheets/channel_details_bottom_sheet/ChannelDetailsBottomSheetShared.ts:162
@@ -36368,6 +36373,11 @@ msgstr "스레드"
 #: src/features/app/config/AuditLogConstants.ts:375
 msgid "Thread created"
 msgstr "스레드 생성됨"
+
+#. Title of the developer-mode thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:117
+msgid "Thread debug"
+msgstr "스레드 디버그"
 
 #. Activity log action filter option for threads that were deleted.
 #. Toast after a thread was deleted.

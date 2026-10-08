@@ -11963,6 +11963,11 @@ msgstr "调试成员"
 msgid "Debug message"
 msgstr "调试消息"
 
+#. Developer-mode action that opens the thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:113
+msgid "Debug thread"
+msgstr "调试线程"
+
 #. Channel details bottom sheet label or action (channel type, settings, toast, confirmation, or notification option).
 #. Developer-mode action that opens a user debug panel.
 #: src/features/channel/components/bottomsheets/channel_details_bottom_sheet/ChannelDetailsBottomSheetShared.ts:162
@@ -36368,6 +36373,11 @@ msgstr "帖子"
 #: src/features/app/config/AuditLogConstants.ts:375
 msgid "Thread created"
 msgstr "创建的帖子"
+
+#. Title of the developer-mode thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:117
+msgid "Thread debug"
+msgstr "线程调试"
 
 #. Activity log action filter option for threads that were deleted.
 #. Toast after a thread was deleted.

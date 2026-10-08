@@ -11963,6 +11963,12 @@ msgstr "Debug membro"
 msgid "Debug message"
 msgstr "Debug del messaggio"
 
+# auto-i18n: reviewed unchanged
+#. Developer-mode action that opens the thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:113
+msgid "Debug thread"
+msgstr "Debug thread"
+
 #. Channel details bottom sheet label or action (channel type, settings, toast, confirmation, or notification option).
 #. Developer-mode action that opens a user debug panel.
 #: src/features/channel/components/bottomsheets/channel_details_bottom_sheet/ChannelDetailsBottomSheetShared.ts:162
@@ -36368,6 +36374,11 @@ msgstr "Thread"
 #: src/features/app/config/AuditLogConstants.ts:375
 msgid "Thread created"
 msgstr "Thread creato"
+
+#. Title of the developer-mode thread debug modal.
+#: src/features/threads/utils/ThreadMessageDescriptors.ts:117
+msgid "Thread debug"
+msgstr "Debug thread"
 
 #. Activity log action filter option for threads that were deleted.
 #. Toast after a thread was deleted.
