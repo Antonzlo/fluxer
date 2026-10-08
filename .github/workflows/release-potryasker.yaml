@@ -1,0 +1,432 @@
+name: release potryasker
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (semver, no leading v). Defaults to 0.2.<run number>.
+        required: false
+        default: ""
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a pre-release.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-potryasker
+  cancel-in-progress: false
+
+env:
+  BUILD_CHANNEL: stable
+  RELEASE_CHANNEL: stable
+  PUBLIC_RELEASE_CHANNEL: stable
+  CI_MANIFEST: ${{ github.workspace }}/source/tools/ci/Cargo.toml
+
+jobs:
+  meta:
+    name: Resolve version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      pub_date: ${{ steps.meta.outputs.pub_date }}
+    steps:
+      - id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          version="${INPUT_VERSION:-0.2.${GITHUB_RUN_NUMBER}}"
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+          echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+  renderer:
+    name: Build renderer assets
+    needs: meta
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUBLIC_BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.98.1"
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry and build output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            source/target
+            source/tools/ci/target
+          key: ${{ runner.os }}-potryasker-renderer-cargo-${{ hashFiles('source/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-renderer-cargo-
+
+      - name: Set workdir
+        env:
+          SUBST_TARGET: ${{ github.workspace }}/source
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step set_workdir_unix
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 26
+
+      - name: Set up pnpm
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step setup_pnpm
+
+      - name: Resolve pnpm store path
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step resolve_pnpm_store_unix
+
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-potryasker-pnpm-store-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step install_dependencies
+
+      - name: Update version
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step update_version
+
+      - name: Set build channel
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step set_build_channel
+
+      - name: Build shared renderer assets
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step build_shared_assets
+
+      - name: Prepare shared renderer artifact
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step prepare_shared_assets
+
+      - name: Upload shared renderer artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: potryasker-renderer
+          path: source/desktop-shared-assets
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  windows:
+    name: Build Windows NSIS (x64)
+    needs: [meta, renderer]
+    runs-on: windows-2025
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUBLIC_BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUB_DATE: ${{ needs.meta.outputs.pub_date }}
+      SOURCE_SHA: ${{ github.sha }}
+      DESKTOP_PLATFORM: windows
+      DESKTOP_ARCH: x64
+      PLATFORM: windows
+      ARCH: x64
+      ELECTRON_ARCH: x64
+      FLUXER_CARGO_TARGET_BASE: C:\fcargo
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+
+      - name: Set up Rust toolchain (CI helpers)
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.98.1"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.14"
+
+      - name: Ensure python3 command
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step ensure_python3_windows
+
+      - name: Shorten Windows paths and pin pnpm store
+        env:
+          SUBST_TARGET: ${{ github.workspace }}/source
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step windows_paths
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 26
+
+      - name: Set up pnpm
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step setup_pnpm
+
+      - name: Resolve pnpm store path
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step resolve_pnpm_store_windows
+
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-potryasker-pnpm-store-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-pnpm-store-
+
+      - name: Cache cargo registry
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            source/tools/ci/target
+          key: ${{ runner.os }}-potryasker-cargo-registry-${{ hashFiles('source/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-cargo-registry-
+
+      - name: Cache native addon build output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: C:\fcargo
+          key: ${{ runner.os }}-potryasker-native-${{ hashFiles('source/fluxer_desktop/native/**/Cargo.lock', 'source/fluxer_desktop/native/**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-native-
+
+      - name: Cache Electron and electron-builder downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            C:\ebcache
+            ~\AppData\Local\electron\Cache
+          key: ${{ runner.os }}-potryasker-electron-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-electron-
+
+      - name: Set up MSVC env
+        uses: TheMrMilchmann/setup-msvc-dev@368ef7d1ee4d1171b31d4a7f67f4d954f903f5a9
+        with:
+          arch: amd64
+
+      - name: Set up Rust toolchain targets
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step install_rust_windows_targets
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step install_dependencies
+
+      - name: Update version
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step update_version
+
+      - name: Set build channel
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step set_build_channel
+
+      - name: Download shared renderer artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: potryasker-renderer
+          path: source/desktop-shared-assets
+
+      - name: Restore shared renderer assets
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step restore_shared_assets
+
+      - name: Build Electron main process
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step build_electron_main
+
+      - name: Build NSIS installer
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        env:
+          TEMP: C:\t
+          TMP: C:\t
+          ELECTRON_BUILDER_CACHE: C:\ebcache
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --win nsis --x64 --publish never
+
+      - name: Stage installer
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          find dist-electron -maxdepth 1 -name '*.exe' -exec cp {} "$GITHUB_WORKSPACE/out/" \;
+          ls -la "$GITHUB_WORKSPACE/out"
+
+      - name: Upload installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: potryasker-windows
+          path: out
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  rpm:
+    name: Build RPM (x64)
+    needs: [meta, renderer]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUBLIC_BUILD_VERSION: ${{ needs.meta.outputs.version }}
+      PUB_DATE: ${{ needs.meta.outputs.pub_date }}
+      SOURCE_SHA: ${{ github.sha }}
+      DESKTOP_PLATFORM: linux
+      DESKTOP_ARCH: x64
+      PLATFORM: linux
+      ARCH: x64
+      ELECTRON_ARCH: x64
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: source
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.98.1"
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Cache cargo registry and native addon build output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            source/tools/ci/target
+            source/fluxer_desktop/native/*/target
+          key: ${{ runner.os }}-potryasker-native-${{ hashFiles('source/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-native-
+
+      - name: Cache Electron and electron-builder downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-potryasker-electron-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-electron-
+
+      - name: Set workdir
+        env:
+          SUBST_TARGET: ${{ github.workspace }}/source
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step set_workdir_unix
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 26
+
+      - name: Set up pnpm
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step setup_pnpm
+
+      - name: Resolve pnpm store path
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step resolve_pnpm_store_unix
+
+      - name: Cache pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-potryasker-pnpm-store-${{ hashFiles('source/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-potryasker-pnpm-store-
+
+      - name: Install Linux dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step install_linux_deps
+          sudo apt-get install -y --no-install-recommends rpm
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step install_dependencies
+
+      - name: Update version
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step update_version
+
+      - name: Set build channel
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step set_build_channel
+
+      - name: Download shared renderer artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: potryasker-renderer
+          path: source/desktop-shared-assets
+
+      - name: Restore shared renderer assets
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step restore_shared_assets
+
+      - name: Build Electron main process
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step build_electron_main
+
+      - name: Build RPM
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --linux rpm --x64 --publish never
+
+      - name: Stage RPM
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp dist-electron/*.rpm "$GITHUB_WORKSPACE/out/"
+          ls -la "$GITHUB_WORKSPACE/out"
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: potryasker-rpm
+          path: out
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  release:
+    name: Publish GitHub release
+    needs: [meta, windows, rpm]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: potryasker-{windows,rpm}
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          flags=()
+          [ "$PRERELEASE" = "true" ] && flags+=(--prerelease)
+          gh release create "v${VERSION}" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Potryasker ${VERSION}" \
+            --generate-notes \
+            "${flags[@]}"
