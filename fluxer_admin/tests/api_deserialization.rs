@@ -416,17 +416,6 @@ fn deserialize_instance_config_response_with_unknown_keys() {
             "anonymous_rollout_basis_points": 100,
             "standalone_forwarding": true
         },
-        "plutonium_page": {
-            "enabled": true,
-            "config_version": 3,
-            "rollout_basis_points": 500,
-            "rollout_salt": "plutonium-page-v1",
-            "included_user_ids": ["1500000000000000001"],
-            "excluded_user_ids": ["1500000000000000002"],
-            "included_guild_ids": ["1500000000000000005"],
-            "include_premium_users": true,
-            "future_plutonium_page_knob": true
-        },
         "captcha": {
             "enabled": true,
             "cost": 5000,
@@ -584,14 +573,6 @@ fn deserialize_instance_config_response_with_unknown_keys() {
     assert_eq!(resp.domain_migration.included_user_ids.len(), 1);
     assert_eq!(resp.domain_migration.anonymous_rollout_basis_points, 100);
     assert!(resp.domain_migration.standalone_forwarding);
-    assert!(resp.plutonium_page.enabled);
-    assert_eq!(resp.plutonium_page.config_version, 3);
-    assert_eq!(resp.plutonium_page.rollout_basis_points, 500);
-    assert_eq!(*resp.plutonium_page.rollout_salt, "plutonium-page-v1");
-    assert_eq!(resp.plutonium_page.included_user_ids.len(), 1);
-    assert_eq!(resp.plutonium_page.excluded_user_ids.len(), 1);
-    assert_eq!(resp.plutonium_page.included_guild_ids.len(), 1);
-    assert!(resp.plutonium_page.include_premium_users);
     assert!(resp.push_relay.relay_consent_accepted);
     assert!(resp.captcha.enabled);
     assert_eq!(resp.captcha.max_counter, 1000);
@@ -1083,4 +1064,49 @@ fn account_identity_lock_is_unknown_when_the_api_omits_it() {
         serde_json::from_str("{}").expect("empty account identity");
     assert_eq!(identity.mode, types::AccountIdentityMode::Email);
     assert_eq!(identity.locked, None);
+}
+
+#[test]
+fn deserialize_guild_threads_response() {
+    let json = r#"{
+        "threads": [
+            {
+                "id": "1600000000000000010",
+                "type": 12,
+                "guild_id": "1600000000000000001",
+                "parent_id": "1600000000000000002",
+                "owner_id": "1500000000000000001",
+                "name": "secret plans",
+                "last_message_id": null,
+                "last_pin_timestamp": null,
+                "rate_limit_per_user": 0,
+                "flags": 0,
+                "thread_metadata": {
+                    "archived": true,
+                    "auto_archive_duration": 4320,
+                    "archive_timestamp": "2026-09-27T12:00:00.000Z",
+                    "locked": false,
+                    "invitable": false,
+                    "create_timestamp": "2026-09-26T12:00:00.000Z"
+                },
+                "message_count": 3,
+                "total_message_sent": 4,
+                "member_count": 2
+            }
+        ]
+    }"#;
+    let generated: generated_types::ListGuildThreadsResponse =
+        serde_json::from_str(json).expect("the generated client must accept the thread list");
+    assert_eq!(generated.threads.len(), 1);
+    let resp: types::ListGuildThreadsResponse = serde_json::from_str(json).unwrap();
+    let thread = &resp.threads[0];
+    assert_eq!(thread.channel_type, 12);
+    assert_eq!(thread.name.as_deref(), Some("secret plans"));
+    assert_eq!(thread.member_count, Some(2));
+    assert!(
+        thread
+            .thread_metadata
+            .as_ref()
+            .is_some_and(|m| m.archived && !m.locked)
+    );
 }

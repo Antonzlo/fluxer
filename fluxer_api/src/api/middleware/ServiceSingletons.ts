@@ -40,6 +40,7 @@ import type {IUnfurlerService} from '@app/api/infrastructure/IUnfurlerService';
 import {KVAccountDeletionQueueService} from '@app/api/infrastructure/KVAccountDeletionQueueService';
 import {KVActivityTracker} from '@app/api/infrastructure/KVActivityTracker';
 import {KVBulkMessageDeletionQueueService} from '@app/api/infrastructure/KVBulkMessageDeletionQueueService';
+import {KVThreadAutoArchiveQueueService} from '@app/api/infrastructure/KVThreadAutoArchiveQueueService';
 import {NatsUnfurlerService} from '@app/api/infrastructure/NatsUnfurlerService';
 import {PremiumStateReconciliationQueueService} from '@app/api/infrastructure/PremiumStateReconciliationQueueService';
 import {createStorageService} from '@app/api/infrastructure/StorageServiceFactory';
@@ -257,6 +258,18 @@ export function getKVBulkMessageDeletionQueue(): KVBulkMessageDeletionQueueServi
 		bulkMessageDeletionQueueClient = kvClient;
 	}
 	return bulkMessageDeletionQueue;
+}
+
+let threadAutoArchiveQueueClient: IKVProvider | null = null;
+let threadAutoArchiveQueue: KVThreadAutoArchiveQueueService | null = null;
+
+export function getKVThreadAutoArchiveQueue(): KVThreadAutoArchiveQueueService {
+	const kvClient = getKVClient();
+	if (!threadAutoArchiveQueue || threadAutoArchiveQueueClient !== kvClient) {
+		threadAutoArchiveQueue = new KVThreadAutoArchiveQueueService(kvClient);
+		threadAutoArchiveQueueClient = kvClient;
+	}
+	return threadAutoArchiveQueue;
 }
 
 let premiumStateQueueClient: IKVProvider | null = null;

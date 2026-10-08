@@ -1,5 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import type {DesktopAccountStorageAPI} from '@fluxer/desktop_ipc/src/AccountContract';
+import type {DesktopHandoffAPI} from '@fluxer/desktop_ipc/src/BrowserHandoffContract';
+import type {DesktopCapabilityManifest} from '@fluxer/desktop_ipc/src/CapabilityManifest';
+import type {NativeGatewayTransportAPI} from '@fluxer/desktop_ipc/src/GatewayTransportContract';
+import type {DesktopKnownInstanceStorageAPI} from '@fluxer/desktop_ipc/src/KnownInstanceContract';
+import type {DesktopLegacyHarvest} from '@fluxer/desktop_ipc/src/LegacyHarvestContract';
+import type {DesktopLocalAppUploadProgress} from '@fluxer/desktop_ipc/src/LocalAppRouteContract';
+import type {DesktopRuntimeConfigAPI} from '@fluxer/desktop_ipc/src/LocalAppRuntimeContract';
+import type {DesktopModuleAPI, DesktopUpdateAPI} from '@fluxer/desktop_ipc/src/ModuleContract';
+import type {DesktopStorageAPI} from '@fluxer/desktop_ipc/src/StorageContract';
 import type {VoiceEngineV2BridgeHardwareEncoderApi} from '@fluxer/voice_engine_v2/bridge';
 import type {
 	AuthenticationResponseJSON,
@@ -178,8 +188,6 @@ export type UpdaterEvent =
 			type: 'available';
 			context: UpdaterContext;
 			version: string | null;
-			downloadSize?: number | null;
-			downloadStarted: boolean;
 			downloadUrl?: string;
 			downloadOptions?: Array<UpdaterDownloadOption>;
 	  }
@@ -190,21 +198,11 @@ export type UpdaterEvent =
 	| {
 			type: 'downloaded';
 			context: UpdaterContext;
-			version: string | null;
-	  }
-	| {
-			type: 'progress';
-			context: UpdaterContext;
-			percent: number;
-			transferred: number;
-			total: number;
-			bytesPerSecond: number;
 	  }
 	| {
 			type: 'error';
 			context: UpdaterContext;
 			message: string;
-			phase?: 'check' | 'download' | 'install';
 	  }
 	| {
 			type: 'unsupported';
@@ -312,8 +310,23 @@ export interface AppMetricsSnapshot {
 	freeMemoryMB: number;
 }
 
+interface DesktopLegacyHarvestAPI {
+	read: () => Promise<DesktopLegacyHarvest | null>;
+	markReplanted: () => Promise<void>;
+	discard: () => Promise<void>;
+}
+
+interface DesktopLocalAppUploadAPI {
+	subscribe: (listener: (progress: DesktopLocalAppUploadProgress) => void) => () => void;
+}
+
+interface DesktopLocalAppInfo {
+	readonly origin: string;
+}
+
 export interface ElectronAPI {
 	platform: NodeJS.Platform;
+	localDevelopmentInstanceUrl?: string | null;
 	getDesktopInfo: () => Promise<DesktopInfo>;
 	getGpuInfo?: () => Promise<GpuInfo>;
 	getAppMetrics?: () => Promise<AppMetricsSnapshot>;
@@ -336,8 +349,8 @@ export interface ElectronAPI {
 	deleteVoiceBackgroundMedia: (id: string) => Promise<void>;
 	onUpdaterEvent: (callback: (event: UpdaterEvent) => void) => () => void;
 	updaterCheck: (context: UpdaterContext) => Promise<void>;
-	updaterDownload: (context: UpdaterContext) => Promise<void>;
-	updaterInstall: () => Promise<void>;
+	updaterDownload?: (context: UpdaterContext) => Promise<void>;
+	updaterInstall?: () => Promise<void>;
 	windowMinimize: () => void;
 	windowMaximize: () => void;
 	windowClose: () => void;
@@ -349,6 +362,7 @@ export interface ElectronAPI {
 	openVoiceDebugEventSinkPopout?: (entries: Array<DesktopVoiceDebugEventSinkEntry>) => Promise<void>;
 	appendVoiceDebugEventSinkEntries?: (entries: Array<DesktopVoiceDebugEventSinkEntry>) => void;
 	setVoiceDebugEventSinkStatsHtml?: (html: string) => void;
+	onWindowLiveResizeChange: (callback: (resizing: boolean) => void) => () => void;
 	onWindowMaximizeChange: (callback: (maximized: boolean) => void) => () => void;
 	openExternal: (url: string) => Promise<void>;
 	clipboardWriteText: (text: string) => Promise<void>;
@@ -431,11 +445,11 @@ export interface ElectronAPI {
 	passkeyIsSupported: () => Promise<boolean>;
 	passkeyAuthenticate: (
 		options: PublicKeyCredentialRequestOptionsJSON,
-		requestContext?: {pin?: string},
+		requestContext?: {pin?: string; instanceKey?: string},
 	) => Promise<AuthenticationResponseJSON>;
 	passkeyRegister: (
 		options: PublicKeyCredentialCreationOptionsJSON,
-		requestContext?: {pin?: string},
+		requestContext?: {pin?: string; instanceKey?: string},
 	) => Promise<RegistrationResponseJSON>;
 	getDesktopSources: (
 		types: Array<'screen' | 'window'>,
@@ -447,9 +461,21 @@ export interface ElectronAPI {
 	selectDisplayMediaSource: (requestId: string, sourceId: string | null, withAudio: boolean) => void;
 	virtmic: VirtmicApi;
 	nativeAudio: NativeAudioApi;
+	capabilities?: DesktopCapabilityManifest;
+	desktopAccounts?: DesktopAccountStorageAPI;
+	desktopStorage?: DesktopStorageAPI;
+	desktopKnownInstances?: DesktopKnownInstanceStorageAPI;
+	desktopHandoff?: DesktopHandoffAPI;
+	desktopRuntimeConfig?: DesktopRuntimeConfigAPI;
 	voiceEngine?: VoiceEngineV2BridgeHardwareEncoderApi;
-	domainMigration?: {version: number; setAppOrigin(origin: string): Promise<void>};
-	passkeyRpIds?: ReadonlyArray<string>;
+	desktopModules?: DesktopModuleAPI;
+	desktopUpdate?: DesktopUpdateAPI;
+	desktopLegacyHarvest?: DesktopLegacyHarvestAPI;
+	reportLastRoute?: (routePath: string) => void;
+	notifyFirstContentPainted?: () => void;
+	localAppUpload?: DesktopLocalAppUploadAPI;
+	localApp?: DesktopLocalAppInfo;
+	nativeGatewayTransport?: NativeGatewayTransportAPI;
 }
 
 export type VirtmicUnavailableReason =
