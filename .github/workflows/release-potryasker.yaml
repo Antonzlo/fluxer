@@ -1,13 +1,17 @@
 name: release potryasker
 
+# Runs on the branch, not a tag: GitHub scopes caches to the ref, so a tag run could never reuse them.
+# Release by changing .github/release-version (for example 0.2.1) and pushing to potryasker.
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - potryasker
+    paths:
+      - .github/release-version
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (semver, no leading v). Defaults to the pushed tag, else 0.2.<run number>.
+        description: Release version (semver, no leading v). Defaults to .github/release-version.
         required: false
         default: ""
         type: string
@@ -39,12 +43,15 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       pub_date: ${{ steps.meta.outputs.pub_date }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          sparse-checkout: .github/release-version
+          sparse-checkout-cone-mode: false
       - id: meta
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [ "$GITHUB_REF_TYPE" = tag ]; then INPUT_VERSION="$GITHUB_REF_NAME"; fi
-          version="${INPUT_VERSION:-0.2.${GITHUB_RUN_NUMBER}}"
+          version="${INPUT_VERSION:-$(tr -d '[:space:]' < .github/release-version)}"
           echo "version=${version#v}" >> "$GITHUB_OUTPUT"
           echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
