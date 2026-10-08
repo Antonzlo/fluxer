@@ -193,6 +193,13 @@ jobs:
         with:
           toolchain: "1.98.1"
 
+      # Before the first cargo run: the MSVC env changes what Cargo fingerprints, so setting it up later made the
+      # helper rebuild twice per run and never match the cache.
+      - name: Set up MSVC env
+        uses: TheMrMilchmann/setup-msvc-dev@368ef7d1ee4d1171b31d4a7f67f4d954f903f5a9
+        with:
+          arch: amd64
+
       - name: Cache cargo registry
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
@@ -260,11 +267,6 @@ jobs:
           key: ${{ runner.os }}-potryasker-electron-${{ hashFiles('source/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-potryasker-electron-
-
-      - name: Set up MSVC env
-        uses: TheMrMilchmann/setup-msvc-dev@368ef7d1ee4d1171b31d4a7f67f4d954f903f5a9
-        with:
-          arch: amd64
 
       - name: Set up Rust toolchain targets
         run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step install_rust_windows_targets
