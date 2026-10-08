@@ -215,6 +215,41 @@ describe('ModuleStore', () => {
 		assert.equal(existsSync(path.join(userDataPath, 'desktop-app-store.sqlite3')), false);
 	});
 
+	test('says when the shell changed version since the store was last opened', async () => {
+		const userDataPath = createUserData();
+		assert.equal((await openStore(userDataPath)).shellVersionChanged, false);
+		assert.equal((await openStore(userDataPath)).shellVersionChanged, false);
+
+		const upgraded = await ModuleStore.open({
+			root: getModuleStoreRoot(userDataPath),
+			shellVersion: '2026.824.1',
+			releaseChannel: RELEASE_CHANNEL,
+		});
+
+		assert.equal(upgraded.shellVersionChanged, true);
+		assert.notEqual(
+			readState(userDataPath).shell_version,
+			'2026.824.1',
+			'a quit or crash before the modules converge has to force the update again on the next boot',
+		);
+		const reopened = await ModuleStore.open({
+			root: getModuleStoreRoot(userDataPath),
+			shellVersion: '2026.824.1',
+			releaseChannel: RELEASE_CHANNEL,
+		});
+		assert.equal(reopened.shellVersionChanged, true);
+
+		await reopened.recordShellVersionConverged();
+
+		assert.equal(readState(userDataPath).shell_version, '2026.824.1');
+		const converged = await ModuleStore.open({
+			root: getModuleStoreRoot(userDataPath),
+			shellVersion: '2026.824.1',
+			releaseChannel: RELEASE_CHANNEL,
+		});
+		assert.equal(converged.shellVersionChanged, false);
+	});
+
 	test('writes state.json atomically and leaves no temporary behind', async () => {
 		const userDataPath = createUserData();
 		const store = await openStore(userDataPath);

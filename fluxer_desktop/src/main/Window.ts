@@ -47,6 +47,7 @@ const runtimeSecurity = new DesktopRuntimeSecurity({
 const LIVE_RESIZE_IDLE_MS = 400;
 const VISIBILITY_MARGIN = 32;
 const RENDERER_GONE_REPEAT_WINDOW_MS = 30000;
+const CLOSE_FOR_UPDATE_TIMEOUT_MS = 5000;
 const THEME_WINDOW_BACKGROUND_COLORS: Readonly<Record<string, string>> = Object.freeze({
 	dark: '#1a181e',
 	light: '#ebecef',
@@ -153,6 +154,9 @@ let initialAllowTransparency: boolean | null = null;
 let themeStudioPopoutWindow: BrowserWindow | null = null;
 let lastRestorableMainWindowMaximized = false;
 let mainWindowRendererGone = false;
+let closingMainWindowForUpdate = false;
+let mainWindowTakeover: (() => void) | null = null;
+const takeoverEndedListeners = new Set<() => void>();
 let pendingMainWindowReveal: {readonly window: BrowserWindow; readonly requestShow: () => void} | null = null;
 
 const maximizeChangeForwarders = new WeakSet<BrowserWindow>();
@@ -863,7 +867,7 @@ export function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 		if (saveTimeout) clearTimeout(saveTimeout);
 		endLiveResize();
 		saveWindowBounds();
-		if (!isQuitting && shouldHideMainWindowOnClose()) {
+		if (!isQuitting && !closingMainWindowForUpdate && shouldHideMainWindowOnClose()) {
 			event.preventDefault();
 			logger.info(
 				process.platform === 'darwin'
@@ -1127,6 +1131,10 @@ export function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 }
 
 export function showWindow(): void {
+	if (mainWindowTakeover != null) {
+		mainWindowTakeover();
+		return;
+	}
 	if (mainWindow && pendingMainWindowReveal?.window === mainWindow && !mainWindow.isVisible()) {
 		pendingMainWindowReveal.requestShow();
 		return;
@@ -1178,4 +1186,81 @@ export function hideWindow(): void {
 
 export function setQuitting(quitting: boolean): void {
 	isQuitting = quitting;
+}
+
+export function beginMainWindowTakeover(focus: () => void): void {
+	mainWindowTakeover = focus;
+}
+
+export function endMainWindowTakeover(): void {
+	if (mainWindowTakeover == null) return;
+	mainWindowTakeover = null;
+	for (const listener of Array.from(takeoverEndedListeners)) {
+		try {
+			listener();
+		} catch (error) {
+			logger.error('A main window takeover listener threw', error);
+		}
+	}
+}
+
+export function onMainWindowTakeoverEnded(listener: () => void): () => void {
+	takeoverEndedListeners.add(listener);
+	return () => {
+		takeoverEndedListeners.delete(listener);
+	};
+}
+
+export function isMainWindowTakenOver(): boolean {
+	return mainWindowTakeover != null;
+}
+
+export function hideAppWindowsForUpdate(keep: BrowserWindow): ReadonlyArray<BrowserWindow> {
+	const hidden: Array<BrowserWindow> = [];
+	for (const window of BrowserWindow.getAllWindows()) {
+		if (window === keep || window.isDestroyed() || !window.isVisible()) continue;
+		window.hide();
+		hidden.push(window);
+	}
+	return hidden;
+}
+
+export function restoreAppWindowsAfterUpdate(hidden: ReadonlyArray<BrowserWindow>): void {
+	for (const window of hidden) {
+		if (window.isDestroyed()) continue;
+		window.show();
+	}
+}
+
+export async function closeAppWindowsForUpdate(keep: BrowserWindow): Promise<void> {
+	const closing = BrowserWindow.getAllWindows().filter((window) => window !== keep && !window.isDestroyed());
+	closingMainWindowForUpdate = true;
+	try {
+		await Promise.all(
+			closing.map(
+				(window) =>
+					new Promise<void>((resolve) => {
+						let deadline: NodeJS.Timeout | null = null;
+						window.once('closed', () => {
+							if (deadline != null) clearTimeout(deadline);
+							resolve();
+						});
+						if (!window.isClosable()) {
+							window.destroy();
+							return;
+						}
+						deadline = setTimeout(() => {
+							logger.warn('A window did not close for the update in time, destroying it');
+							if (!window.isDestroyed()) window.destroy();
+						}, CLOSE_FOR_UPDATE_TIMEOUT_MS);
+						window.webContents.once('will-prevent-unload', (event) => {
+							event.preventDefault();
+						});
+						window.close();
+					}),
+			),
+		);
+	} finally {
+		closingMainWindowForUpdate = false;
+	}
 }
