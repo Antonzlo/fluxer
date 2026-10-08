@@ -557,8 +557,8 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      # Draft first and upload separately: creating the release with the files attached was rejected with a
-      # 403 for the real installers, while an empty draft and a later upload are accepted.
+      # Plain notes and a draft-first flow: --generate-notes with the real installers on disk was rejected with a
+      # 403 that no probe could reproduce. Edit the notes on GitHub after publishing.
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -571,7 +571,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Potryasker ${VERSION}" \
-            --generate-notes \
+            --notes "Build of commit ${GITHUB_SHA}." \
             "${flags[@]}"
           gh release upload "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
           if [ "$PRERELEASE" = "true" ]; then
