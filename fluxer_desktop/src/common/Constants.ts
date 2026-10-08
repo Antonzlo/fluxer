@@ -22,7 +22,9 @@ export const CHANNEL_APP_URLS: Record<BuildChannel, string> = {
 	canary: CANARY_APP_URL,
 	development: DEVELOPMENT_APP_URL,
 };
-export const LOCAL_DEVELOPMENT_INSTANCE_URL = BUILD_CHANNEL === 'development' ? DEVELOPMENT_APP_URL : null;
+// Potryasker: offer this fork's server in the instance picker on non-development builds.
+const POTRYASKER_INSTANCE_URL = 'https://fluxer.pitzuna.com';
+export const LOCAL_DEVELOPMENT_INSTANCE_URL = BUILD_CHANNEL === 'development' ? DEVELOPMENT_APP_URL : POTRYASKER_INSTANCE_URL;
 export const DOWNLOAD_PAGE_URLS: Record<BuildChannel, string> = {
 	stable: 'https://fluxer.app/download',
 	canary: 'https://canary.fluxer.app/download',
