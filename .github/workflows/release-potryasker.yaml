@@ -269,9 +269,14 @@ jobs:
       - name: Restore shared renderer assets
         run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step restore_shared_assets
 
+      # Not the CI helper step: it forces FLUXER_MODULES=1, which makes the app fetch a module
+      # manifest from a package server this fork does not have. Without it the renderer ships in the app.
       - name: Build Electron main process
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
-        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step build_electron_main
+        env:
+          NODE_ENV: production
+          FLUXER_DESKTOP_PRODUCTION: "true"
+        run: pnpm build --use-shared-renderer
 
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
@@ -441,9 +446,14 @@ jobs:
       - name: Restore shared renderer assets
         run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step restore_shared_assets
 
+      # Not the CI helper step: it forces FLUXER_MODULES=1, which makes the app fetch a module
+      # manifest from a package server this fork does not have. Without it the renderer ships in the app.
       - name: Build Electron main process
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
-        run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step build_electron_main
+        env:
+          NODE_ENV: production
+          FLUXER_DESKTOP_PRODUCTION: "true"
+        run: pnpm build --use-shared-renderer
 
       - name: Build RPM
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
