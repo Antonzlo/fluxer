@@ -153,7 +153,7 @@ const {
 	SHELL_SELF_UPDATE_CHECK_TIMEOUT_MS,
 	SHELL_SELF_UPDATE_TOTAL_TIMEOUT_MS,
 } = await import('@electron/main/ShellSelfUpdate');
-const {getUpdateBaseUrl} = await import('@electron/main/ShellDownloadFormats');
+const {getUpdateBaseUrl, getVelopackFeedUrl} = await import('@electron/main/ShellDownloadFormats');
 
 function createHooks() {
 	const calls = [];
@@ -256,7 +256,7 @@ describe('velopack self update', () => {
 
 		await start('velopack', hooks);
 
-		assert.deepEqual(velopack.constructedWith, [getUpdateBaseUrl()]);
+		assert.deepEqual(velopack.constructedWith, [getVelopackFeedUrl()]);
 	});
 
 	selfUpdateTest('a feed with nothing newer resolves without ever touching the splash', async ({start}) => {

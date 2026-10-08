@@ -11,7 +11,8 @@ export function getDesktopDownloadArch(arch: NodeJS.Architecture): DesktopDownlo
 export const DESKTOP_DOWNLOAD_ARCH = getDesktopDownloadArch(process.arch);
 const PACKAGE_ORIGIN_ENV = 'FLUXER_DESKTOP_PACKAGE_ORIGIN';
 const CHANNEL_PACKAGE_ORIGINS: Record<BuildChannel, string> = {
-	stable: 'https://pkgs.fluxer.com',
+	// Potryasker: no update feed. Pointing at pkgs.fluxer.com would replace this build with official Fluxer.
+	stable: 'https://updates.potryasker.invalid',
 	canary: 'https://pkgs.fluxer.com',
 	development: 'http://localhost:48780',
 };
@@ -26,6 +27,16 @@ export function resolveDesktopPackageOrigin(): string {
 
 export function getUpdateBaseUrl(platform: NodeJS.Platform = process.platform): string {
 	return `${resolveDesktopPackageOrigin()}/desktop/${BUILD_CHANNEL}/${platform}/${DESKTOP_DOWNLOAD_ARCH}`;
+}
+
+// Potryasker: Velopack reads releases.win.json and the nupkg straight from the latest GitHub release.
+const FORK_VELOPACK_FEED_URL = 'https://github.com/Antonzlo/fluxer/releases/latest/download';
+
+export function getVelopackFeedUrl(): string {
+	if (BUILD_CHANNEL !== 'stable' || process.env?.[PACKAGE_ORIGIN_ENV]?.trim()) {
+		return getUpdateBaseUrl();
+	}
+	return FORK_VELOPACK_FEED_URL;
 }
 
 export const MANUAL_DESKTOP_FORMATS = ['setup', 'dmg', 'zip', 'appimage', 'deb', 'rpm', 'tar_gz'] as const;
