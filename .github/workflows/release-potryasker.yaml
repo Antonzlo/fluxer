@@ -131,7 +131,7 @@ jobs:
           compression-level: 0
 
   windows:
-    name: Build Windows NSIS (x64)
+    name: Build Windows NSIS and Velopack (x64)
     needs: [meta, renderer]
     runs-on: windows-2025
     timeout-minutes: 120
@@ -252,20 +252,56 @@ jobs:
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
         run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step build_electron_main
 
-      - name: Build NSIS installer
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache Velopack CLI
+        id: vpk-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: source/fluxer_desktop/.velopack
+          key: ${{ runner.os }}-potryasker-vpk-1.2.0
+
+      - name: Install Velopack CLI
+        if: steps.vpk-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step install_velopack_cli
+
+      - name: Build app (unpacked dir and NSIS installer)
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
         env:
           TEMP: C:\t
           TMP: C:\t
           ELECTRON_BUILDER_CACHE: C:\ebcache
-        run: pnpm exec electron-builder --config electron-builder.config.cjs --win nsis --x64 --publish never
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --win --x64 --publish never
 
-      - name: Stage installer
+      # The upstream CI step refuses to pack without Azure signing, so call vpk directly (unsigned).
+      # The pack id must match WINDOWS_VELOPACK_IDS.stable in DesktopIdentity.ts.
+      - name: Package with Velopack (unsigned)
+        working-directory: ${{ env.WORKDIR }}/fluxer_desktop
+        run: >-
+          .velopack/vpk.exe --yes pack
+          --packId fluxer_desktop
+          --packVersion "$env:VERSION"
+          --packDir dist-electron/win-unpacked
+          --mainExe Potryasker.exe
+          --packTitle Potryasker
+          --packAuthors Antonzlo
+          --shortcuts Desktop,StartMenu
+          --runtime win-x64
+          --icon build_resources/icons-stable/icon.ico
+          --outputDir dist-electron/velopack-windows-x64
+          --delta None
+
+      - name: Stage installers
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
         shell: bash
         run: |
           mkdir -p "$GITHUB_WORKSPACE/out"
           find dist-electron -maxdepth 1 -name '*.exe' -exec cp {} "$GITHUB_WORKSPACE/out/" \;
+          find dist-electron/velopack-windows-x64 -maxdepth 1 -type f ! -name '*.zip' -exec cp {} "$GITHUB_WORKSPACE/out/" \;
           ls -la "$GITHUB_WORKSPACE/out"
 
       - name: Upload installer
