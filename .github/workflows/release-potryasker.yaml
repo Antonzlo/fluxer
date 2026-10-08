@@ -516,25 +516,26 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: A tag v0.2.9, notes generated
+      - name: P1 real tag and title, dummy file
         continue-on-error: true
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
           mkdir -p ra && echo x > ra/a.txt
-          gh release create v0.2.9 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title p --generate-notes
-      - name: B tag v0.2.8, plain notes
+          gh release create v0.2.3 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Potryasker 0.2.3" --generate-notes
+          gh release delete v0.2.3 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+      - name: P2 real file names, dummy contents
         continue-on-error: true
         env: {GH_TOKEN: "${{ github.token }}"}
-        run: gh release create v0.2.8 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title p --notes x
-      - name: C tag v9.9.6, notes generated
+        run: |
+          mkdir -p rb && cd rb
+          for f in Potryasker-0.2.3-setup-win-x64.exe RELEASES assets.win.json potryasker-0.2.3-full.nupkg potryasker-win-Portable.zip potryasker-win-Setup.exe releases.win.json Potryasker-0.2.3-linux-x86_64.rpm; do echo x > "$f"; done
+          cd ..
+          gh release create v0.2.6 rb/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Potryasker 0.2.6" --generate-notes
+          gh release delete v0.2.6 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+      - name: P3 one 300 MB file
         continue-on-error: true
         env: {GH_TOKEN: "${{ github.token }}"}
-        run: gh release create v9.9.6 ra/a.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title p --generate-notes
-      - name: D tag v0.2.7, target main-ish old commit f3db565, plain notes
-        continue-on-error: true
-        env: {GH_TOKEN: "${{ github.token }}"}
-        run: gh release create v0.2.7 ra/a.txt --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title p --notes x
-      - name: Cleanup
-        if: always()
-        env: {GH_TOKEN: "${{ github.token }}"}
-        run: for t in v0.2.9 v0.2.8 v9.9.6 v0.2.7; do gh release delete "$t" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true; done
+        run: |
+          mkdir -p rc && head -c 300000000 /dev/urandom > rc/big.bin
+          gh release create v0.2.5 rc/big.bin --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "big" --generate-notes
+          gh release delete v0.2.5 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
