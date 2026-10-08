@@ -217,6 +217,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            source/target
             _ci/target
           key: ${{ runner.os }}-potryasker-cargo-registry-${{ hashFiles('source/**/Cargo.lock') }}
           restore-keys: |
@@ -378,6 +379,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            source/target
             _ci/target
             source/fluxer_desktop/native/*/target
           key: ${{ runner.os }}-22.04-potryasker-native-${{ hashFiles('source/**/Cargo.lock') }}
