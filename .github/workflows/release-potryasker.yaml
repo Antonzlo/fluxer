@@ -1,10 +1,13 @@
 name: release potryasker
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (semver, no leading v). Defaults to 0.2.<run number>.
+        description: Release version (semver, no leading v). Defaults to the pushed tag, else 0.2.<run number>.
         required: false
         default: ""
         type: string
@@ -40,6 +43,7 @@ jobs:
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then INPUT_VERSION="$GITHUB_REF_NAME"; fi
           version="${INPUT_VERSION:-0.2.${GITHUB_RUN_NUMBER}}"
           echo "version=${version#v}" >> "$GITHUB_OUTPUT"
           echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
