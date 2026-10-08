@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: release-potryasker
@@ -56,7 +57,6 @@ jobs:
           echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
   renderer:
-    if: ${{ !contains(github.event.head_commit.message, '[release-probe]') }}
     name: Build renderer assets
     needs: meta
     runs-on: ubuntu-24.04
@@ -71,11 +71,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: _ci
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: source
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Restore file modification times
+        run: |
+          python3 _ci/.github/scripts/restore-mtime.py _ci
+          python3 _ci/.github/scripts/restore-mtime.py source
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
@@ -148,9 +157,8 @@ jobs:
           compression-level: 0
 
   windows:
-    if: ${{ !contains(github.event.head_commit.message, '[release-probe]') }}
     name: Build Windows NSIS and Velopack (x64)
-    needs: [meta, renderer]
+    needs: meta
     runs-on: windows-2025
     timeout-minutes: 120
     env:
@@ -170,11 +178,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: _ci
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: source
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Set up Rust toolchain (CI helpers)
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
@@ -205,6 +217,12 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.14"
+
+      - name: Restore file modification times
+        shell: bash
+        run: |
+          python _ci/.github/scripts/restore-mtime.py _ci
+          python _ci/.github/scripts/restore-mtime.py source
 
       - name: Ensure python3 command
         run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step ensure_python3_windows
@@ -262,6 +280,25 @@ jobs:
       - name: Set build channel
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
         run: cargo run --locked --quiet --manifest-path "${{ env.CI_MANIFEST }}" -- build-desktop --step set_build_channel
+
+      - name: Wait for the renderer artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 1 180); do
+            if [ -n "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" -q '.artifacts[]|select(.name=="potryasker-renderer")|.name')" ]; then
+              exit 0
+            fi
+            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" -q '.jobs[]|select(.name=="Build renderer assets")|.conclusion // ""')
+            if [ -n "$result" ] && [ "$result" != "success" ]; then
+              echo "Renderer job finished with: $result"
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for the renderer artifact"
+          exit 1
 
       - name: Download shared renderer artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -343,9 +380,8 @@ jobs:
           compression-level: 0
 
   rpm:
-    if: ${{ !contains(github.event.head_commit.message, '[release-probe]') }}
     name: Build RPM (x64)
-    needs: [meta, renderer]
+    needs: meta
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     env:
@@ -364,11 +400,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: _ci
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: source
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Restore file modification times
+        run: |
+          python3 _ci/.github/scripts/restore-mtime.py _ci
+          python3 _ci/.github/scripts/restore-mtime.py source
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
@@ -442,6 +487,25 @@ jobs:
         working-directory: ${{ env.WORKDIR }}/fluxer_desktop
         run: cargo run --locked --quiet --manifest-path "$CI_MANIFEST" -- build-desktop --step set_build_channel
 
+      - name: Wait for the renderer artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 1 180); do
+            if [ -n "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" -q '.artifacts[]|select(.name=="potryasker-renderer")|.name')" ]; then
+              exit 0
+            fi
+            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" -q '.jobs[]|select(.name=="Build renderer assets")|.conclusion // ""')
+            if [ -n "$result" ] && [ "$result" != "success" ]; then
+              echo "Renderer job finished with: $result"
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for the renderer artifact"
+          exit 1
+
       - name: Download shared renderer artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -493,44 +557,72 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      # Draft first and upload separately: creating the release with the files attached was rejected with a
+      # 403 for the real installers, while an empty draft and a later upload are accepted.
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_DEBUG: api
           VERSION: ${{ needs.meta.outputs.version }}
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
           flags=()
           [ "$PRERELEASE" = "true" ] && flags+=(--prerelease)
-          gh release create "v${VERSION}" release-assets/* \
+          gh release create "v${VERSION}" --draft \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Potryasker ${VERSION}" \
             --generate-notes \
             "${flags[@]}"
+          gh release upload "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
+          if [ "$PRERELEASE" = "true" ]; then
+            gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --draft=false
+          else
+            gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          fi
 
   probe:
     name: Release probe
     if: ${{ contains(github.event.head_commit.message, '[release-probe]') }}
     needs: meta
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 30
     steps:
+      - name: V1 explicit --draft, no files
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          gh release create v0.2.3 --draft --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker v0.2.3" --generate-notes
+          gh release delete v0.2.3 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+      - name: V2 GH_DEBUG=api
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}", GH_DEBUG: api}
+        run: |
+          mkdir -p ra && echo x > ra/a.txt
+          gh release create v0.2.3 ra/a.txt --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker v0.2.3" --generate-notes
+          gh release delete v0.2.3 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+      - name: V3 title without v
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          gh release create v0.2.3 ra/a.txt --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker 0.2.3" --generate-notes
+          gh release delete v0.2.3 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
       - name: Download installers from the finished run
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: potryasker-{windows,rpm}
+          pattern: potryasker-rpm
           path: release-assets
           merge-multiple: true
           run-id: 37826154234
           github-token: ${{ github.token }}
-      - name: Draft, upload, publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_DEBUG: api
-          VERSION: 0.2.3
+      - name: V4 after a cross-run download, same command as P4
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
         run: |
-          ls -la release-assets
-          gh release create "v${VERSION}" --draft --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker ${VERSION}" --generate-notes
-          gh release upload "v${VERSION}" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
-          gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          gh release create v0.2.3 ra/a.txt --repo "$GITHUB_REPOSITORY" --target f3db56531c59f6e3fc9bbdc35c3819589d4439f7 --title "Potryasker v0.2.3" --generate-notes
+          gh release delete v0.2.3 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+      - name: V5 empty draft after the download, no target
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          gh release create v0.2.3 --draft --repo "$GITHUB_REPOSITORY" --title "Potryasker 0.2.3" --notes x
+          gh release delete v0.2.3 --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
