@@ -128,15 +128,15 @@ import {Track, TrackEvent} from 'livekit-client';
 
 const logger = new Logger('VoiceEngineV2AppMediaExecutionAdapter');
 const CAMERA_PUBLISH_CODEC_CORRECTION_MAX = 1;
-export const REPUBLISH_MICROPHONE_GUARD_MS = 150;
+const REPUBLISH_MICROPHONE_GUARD_MS = 150;
 type VoiceMuteReason = VoiceEngineV2AppVoiceMuteReason;
 
-export interface SetCameraEnabledOptions {
+interface SetCameraEnabledOptions {
 	deviceId?: string;
 	sendUpdate?: boolean;
 }
 
-export interface MicrophoneRefreshRequest {
+interface MicrophoneRefreshRequest {
 	republish: boolean;
 }
 
@@ -198,7 +198,7 @@ function applyMicrophoneFailureLatchEvent(event: VoiceMicrophoneFailureLatchEven
 	return true;
 }
 
-export function isMicrophoneEnableFailureLatched(): boolean {
+function isMicrophoneEnableFailureLatched(): boolean {
 	return isVoiceMicrophoneFailureLatchActive(microphoneFailureLatchSnapshot);
 }
 
@@ -230,7 +230,7 @@ function getEffectiveSelfMuteForVoiceStatePayloadFromV2AudioControls(): boolean 
 	return selectVoiceEngineV2AppEffectiveSelfMuteFromAudioControls(getVoiceEngineV2AudioControlsFromAppState());
 }
 
-export class VoiceEngineV2AppMediaExecutionAdapter extends Store {
+class VoiceEngineV2AppMediaExecutionAdapter extends Store {
 	private speakingDetectorCleanup: (() => void) | null = null;
 	private mediaStateSnapshot: VoiceMediaSnapshot = createVoiceMediaSnapshot();
 	private microphoneEnablePromise: Promise<void> | null = null;
@@ -1369,21 +1369,6 @@ export class VoiceEngineV2AppMediaExecutionAdapter extends Store {
 		await participant.unpublishTrack(cameraTrack);
 		await this.publishCameraTransition(activeRoom, true, {deviceId: VoiceSettings.getVideoDeviceId()});
 		updateLocalParticipantFromRoom(activeRoom);
-	}
-
-	async toggleCameraFromKeybind(): Promise<void> {
-		assert.equal(
-			typeof LocalVoiceState.getSelfVideo,
-			'function',
-			'toggleCameraFromKeybind pre-condition: LocalVoiceState present',
-		);
-		assert.equal(
-			typeof VoiceSettings.getVideoDeviceId,
-			'function',
-			'toggleCameraFromKeybind pre-condition: VoiceSettings present',
-		);
-		const current = LocalVoiceState.getSelfVideo();
-		await this.setCameraEnabled(!current, {deviceId: VoiceSettings.getVideoDeviceId()});
 	}
 
 	async playEntranceSound(): Promise<void> {

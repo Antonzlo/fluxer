@@ -16,35 +16,21 @@ import {
 	isElectron,
 	openExternalUrl,
 } from '@app/features/ui/utils/NativeUtils';
-import {
-	pushDesktopUpdateAvailableModal,
-	pushDesktopUpdateDownloadFailedModal,
-	pushManualUpdateAvailableModal,
-	pushUnsupportedUpdateModal,
-	pushUpdateAvailableModal,
-	pushUpdateCheckFailedModal,
-	pushUpToDateModal,
-} from '@app/features/updater/commands/UpdaterModalCommands';
+import type * as UpdaterModalCommands from '@app/features/updater/commands/UpdaterModalCommands';
 import {
 	createUpdaterMachineSnapshot,
 	getUpdaterDisplayVersion,
 	getUpdaterMachineStateValue,
-	getUpdaterUpdateType,
 	hasManualNativeDownload,
-	type NativeUpdateInfo,
 	transitionUpdaterMachineSnapshot,
 	type UpdateInfo,
 	type UpdaterMachineEvent,
 	type UpdaterMachineSnapshot,
 	type UpdaterState,
-	type UpdateType,
-	type WebUpdateInfo,
 } from '@app/features/updater/state/UpdaterStateMachine';
 import {buildLinuxManualUpdateOptions} from '@app/features/updater/utils/LinuxManualUpdateOptions';
 import type {UpdaterEvent as NativeUpdaterEvent} from '@app/types/electron.d';
 import {makeAutoObservable, runInAction} from 'mobx';
-
-export type {NativeUpdateInfo, UpdateInfo, UpdaterState, UpdateType, WebUpdateInfo};
 
 const logger = new Logger('Updater');
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -55,6 +41,16 @@ const NATIVE_CHECK_TIMEOUT_MS = 30 * 1000;
 const VERSION_ENDPOINT = '/version.json';
 const CURRENT_BUILD_VERSION = Config.PUBLIC_BUILD_VERSION ?? null;
 const DEV_BUILD_VERSION = 'dev';
+
+function loadUpdaterModals(): Promise<typeof UpdaterModalCommands> {
+	return import('@app/features/updater/commands/UpdaterModalCommands');
+}
+
+function showUpdaterModal(show: (modals: typeof UpdaterModalCommands) => void): void {
+	void loadUpdaterModals().then(show, (error) => {
+		logger.warn('Failed to load the updater modals', error);
+	});
+}
 
 async function dropCachedAppShell(): Promise<void> {
 	const browserCaches = getProtectedCacheStorage();
@@ -132,6 +128,7 @@ class Updater {
 	private unsubscribeNativeEvents: (() => void) | null = null;
 	private unsubscribeDesktopUpdate: (() => void) | null = null;
 	private desktopUpdateReported = false;
+	private desktopUpdateRunning = false;
 	private olderShellModuleUpdateReady = false;
 	private olderShellUpdateDownloaded = false;
 	private olderShellInstallWhenDownloaded = false;
@@ -143,10 +140,6 @@ class Updater {
 		makeAutoObservable(this, {}, {autoBind: true});
 		this.isNative = isElectron();
 		initializeStore(this, () => this.bootstrap());
-	}
-
-	get updateType(): UpdateType {
-		return getUpdaterUpdateType(this.snapshot);
 	}
 
 	get updateInfo(): UpdateInfo {
@@ -178,6 +171,10 @@ class Updater {
 
 	private get manualNativeDownloadInFlight(): boolean {
 		return this.snapshot.context.manualNativeDownloadInFlight;
+	}
+
+	get desktopUpdateInProgress(): boolean {
+		return this.desktopUpdateRunning;
 	}
 
 	get desktopUpdateAvailable(): boolean {
@@ -246,6 +243,9 @@ class Updater {
 			logger.warn('Failed to read desktop info', error);
 		}
 		this.subscribeToNativeEvents();
+		void loadUpdaterModals().catch((error) => {
+			logger.debug('Failed to preload the updater modals', error);
+		});
 	}
 
 	private async bootstrapDesktopUpdate(): Promise<void> {
@@ -258,6 +258,7 @@ class Updater {
 		this.unsubscribeDesktopUpdate = desktopUpdate.onStateChanged((state) => {
 			runInAction(() => {
 				this.desktopUpdateReported = state.available;
+				this.desktopUpdateRunning = state.updating === true;
 			});
 		});
 		await this.refreshDesktopUpdateState();
@@ -290,6 +291,7 @@ class Updater {
 			const state = await desktopUpdate.state();
 			runInAction(() => {
 				this.desktopUpdateReported = state.available;
+				this.desktopUpdateRunning = state.updating === true;
 			});
 		} catch (error) {
 			logger.warn('Failed to read the desktop update state', error);
@@ -394,7 +396,7 @@ class Updater {
 				}
 				this.transition({type: 'native.error'});
 				if (isUserCheck) {
-					pushUpdateCheckFailedModal();
+					showUpdaterModal((modals) => modals.pushUpdateCheckFailedModal());
 				}
 				break;
 			case 'unsupported':
@@ -405,7 +407,9 @@ class Updater {
 					now: Date.now(),
 				});
 				if (shouldShowImmediateUserResult) {
-					pushUnsupportedUpdateModal(event.reason ?? 'platform', event.downloadUrl ?? null);
+					const reason = event.reason ?? 'platform';
+					const downloadUrl = event.downloadUrl ?? null;
+					showUpdaterModal((modals) => modals.pushUnsupportedUpdateModal(reason, downloadUrl));
 				}
 				break;
 		}
@@ -500,7 +504,7 @@ class Updater {
 			failed = true;
 			logger.debug('Update check failed silently:', err);
 			if (userInitiated) {
-				pushUpdateCheckFailedModal();
+				showUpdaterModal((modals) => modals.pushUpdateCheckFailedModal());
 			}
 		} finally {
 			this.checkInProgress = false;
@@ -571,7 +575,7 @@ class Updater {
 			return;
 		}
 		if (this.isNative && this.nativeUnsupported?.reason === 'managed-package' && !this.updateInfo.web.available) {
-			pushUnsupportedUpdateModal('managed-package');
+			showUpdaterModal((modals) => modals.pushUnsupportedUpdateModal('managed-package'));
 			return;
 		}
 		if (this.isNative && this.nativeManualUpdateAvailable && !this.nativeUnsupported) {
@@ -590,7 +594,8 @@ class Updater {
 			if (url) {
 				await openExternalUrl(url);
 			} else if (this.nativeUnsupported) {
-				pushUnsupportedUpdateModal(this.nativeUnsupported.reason, this.nativeUnsupported.downloadUrl);
+				const {reason, downloadUrl} = this.nativeUnsupported;
+				showUpdaterModal((modals) => modals.pushUnsupportedUpdateModal(reason, downloadUrl));
 			} else {
 				await openExternalUrl(DESKTOP_DOWNLOAD_URL);
 			}
@@ -599,7 +604,7 @@ class Updater {
 
 	private showCurrentUpdateState(): void {
 		if (this.desktopUpdateAvailable) {
-			pushDesktopUpdateAvailableModal(() => this.startDesktopUpdate());
+			showUpdaterModal((modals) => modals.pushDesktopUpdateAvailableModal(() => this.startDesktopUpdate()));
 			return;
 		}
 		if (this.nativeManualUpdateAvailable) {
@@ -610,10 +615,12 @@ class Updater {
 			return;
 		}
 		if (this.nativeUnsupported) {
-			pushUnsupportedUpdateModal(this.nativeUnsupported.reason, this.nativeUnsupported.downloadUrl);
+			const {reason, downloadUrl} = this.nativeUnsupported;
+			showUpdaterModal((modals) => modals.pushUnsupportedUpdateModal(reason, downloadUrl));
 			return;
 		}
-		pushUpToDateModal(this.currentVersion);
+		const currentVersion = this.currentVersion;
+		showUpdaterModal((modals) => modals.pushUpToDateModal(currentVersion));
 	}
 
 	private getManualUpdateSuggestedName(url: string): string {
@@ -628,17 +635,24 @@ class Updater {
 	}
 
 	private showManualNativeUpdateModal(): void {
-		if (this.nativeManualDownloadOptions.length > 0) {
-			pushManualUpdateAvailableModal({
-				currentVersion: this.currentVersion,
-				version: this.updateInfo.native.version,
-				options: this.nativeManualDownloadOptions,
-				onDownload: (option) => this.downloadManualNativeUpdateOption(option),
-			});
+		const version = this.updateInfo.native.version;
+		const options = this.nativeManualDownloadOptions;
+		if (options.length > 0) {
+			const currentVersion = this.currentVersion;
+			showUpdaterModal((modals) =>
+				modals.pushManualUpdateAvailableModal({
+					currentVersion,
+					version,
+					options,
+					onDownload: (option) => this.downloadManualNativeUpdateOption(option),
+				}),
+			);
 			return;
 		}
 		const url = this.nativeManualDownloadUrl ?? this.nativeUnsupported?.downloadUrl ?? DESKTOP_DOWNLOAD_URL;
-		pushUpdateAvailableModal(this.updateInfo.native.version, () => this.downloadManualNativeUpdateOrOpen(url));
+		showUpdaterModal((modals) =>
+			modals.pushUpdateAvailableModal(version, () => this.downloadManualNativeUpdateOrOpen(url)),
+		);
 	}
 
 	private async refreshManualNativeDownloadOption(option: UpdaterDownloadOption): Promise<UpdaterDownloadOption> {
@@ -699,7 +713,7 @@ class Updater {
 			}
 			if (outcome === 'checksum-mismatch') {
 				logger.error('Native manual update download did not match its published checksum', {url});
-				pushDesktopUpdateDownloadFailedModal();
+				showUpdaterModal((modals) => modals.pushDesktopUpdateDownloadFailedModal());
 				return;
 			}
 			logger.warn('Native manual update download unavailable; opening update URL externally', {outcome});
@@ -723,6 +737,7 @@ class Updater {
 			this.unsubscribeDesktopUpdate = null;
 		}
 		this.desktopUpdateReported = false;
+		this.desktopUpdateRunning = false;
 		this.olderShellModuleUpdateReady = false;
 		this.olderShellUpdateDownloaded = false;
 		this.olderShellInstallWhenDownloaded = false;

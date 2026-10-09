@@ -43,7 +43,7 @@ export interface UserVideoTabScreenShareInput {
 	selfHosted: boolean;
 }
 
-export interface UserVideoTabResolutionOption {
+interface UserVideoTabResolutionOption {
 	value: OfferedScreenShareResolution;
 	isDisabled: boolean;
 }

@@ -6,10 +6,6 @@ export const THREADS_DESCRIPTOR = msg({
 	message: 'Threads',
 	comment: 'Title of the thread browser and label of the threads button in the channel header.',
 });
-export const THREAD_DESCRIPTOR = msg({
-	message: 'Thread',
-	comment: 'Generic noun for a single thread inside a text channel.',
-});
 export const CREATE_THREAD_DESCRIPTOR = msg({
 	message: 'Create thread',
 	comment: 'Action that opens the new thread pane for a channel or a message.',
@@ -117,6 +113,14 @@ export const COPY_THREAD_LINK_DESCRIPTOR = msg({
 export const COPY_THREAD_ID_DESCRIPTOR = msg({
 	message: 'Copy thread ID',
 	comment: 'Developer mode action that copies the thread ID.',
+});
+export const DEBUG_THREAD_DESCRIPTOR = msg({
+	message: 'Debug thread',
+	comment: 'Developer-mode action that opens the thread debug modal.',
+});
+export const THREAD_DEBUG_DESCRIPTOR = msg({
+	message: 'Thread debug',
+	comment: 'Title of the developer-mode thread debug modal.',
 });
 export const THREAD_LINK_COPIED_DESCRIPTOR = msg({
 	message: 'Thread link copied',
