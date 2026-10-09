@@ -7,6 +7,7 @@ import {executeConditional, fetchMany, fetchOne, upsertOne} from '@app/api/datab
 import {Db, type PreparedQuery} from '@app/api/database/CassandraTypes';
 import type {InstanceConfigurationRow} from '@app/api/database/types/InstanceConfigTypes';
 import {syncChannelThreadsConfig} from '@app/api/experiment/ChannelThreadsGate';
+import type {IStorageService} from '@app/api/infrastructure/IStorageService';
 import {
 	type AccountIdentity,
 	resolveAccountIdentity,
@@ -14,10 +15,22 @@ import {
 	setCachedAccountIdentity,
 } from '@app/api/instance/AccountIdentityModeCache';
 import {
+	BRANDING_ASSET_FIELDS,
+	type BrandingAssetField,
+	brandingAssetReferenceFromAnyUrl,
+	brandingAssetStorageKey,
+	isBrandingAssetReference,
+	mapBrandingAssets,
+	resolveBrandingAsset,
+	toStoredBrandingAsset,
+} from '@app/api/instance/BrandingAssetReferences';
+import {
 	getDefaultDateOfBirthCollection,
 	setCachedDateOfBirthCollection,
 } from '@app/api/instance/DateOfBirthCollectionCache';
 import {InstanceConfigCache} from '@app/api/instance/InstanceConfigCache';
+import {setCachedConfiguredLegalUrls} from '@app/api/instance/LegalUrls';
+import {getDefaultProductName, setCachedProductName} from '@app/api/instance/ProductName';
 import {normalizeSsoAllowedEmailDomains} from '@app/api/instance/SsoConfigValidation';
 import {Logger} from '@app/api/Logger';
 import {isLimitConfigSnapshot} from '@app/api/limits/LimitConfigValidation';
@@ -142,7 +155,7 @@ type InstanceBrandingPatch = Partial<Omit<InstanceBranding, 'premium_product_nam
 
 export type InstanceBillingConfig = StoredBillingConfig;
 
-export type InstanceBillingPriceSetPatch = Partial<NonNullable<StoredBillingConfig['prices']>[string]>;
+type InstanceBillingPriceSetPatch = Partial<NonNullable<StoredBillingConfig['prices']>[string]>;
 
 export interface InstanceBillingConfigPatch {
 	enabled?: boolean | null;
@@ -391,14 +404,14 @@ function normalizeOptionalPublicString(value: string | null | undefined, fallbac
 	return value === undefined ? fallback : normalizeOptionalString(value);
 }
 
-export function getDefaultPremiumProductName(): string {
+function getDefaultPremiumProductName(): string {
 	return Config.instance.selfHosted ? 'Premium' : 'Plutonium';
 }
 
 function getDefaultAppPublicConfig(): InstanceAppPublicConfig {
 	return {
 		branding: {
-			product_name: Config.instance.branding.productName || 'Fluxer',
+			product_name: getDefaultProductName(),
 			icon_url: normalizeOptionalString(Config.instance.branding.iconUrl),
 			symbol_url: normalizeOptionalString(Config.instance.branding.symbolUrl),
 			logo_url: normalizeOptionalString(Config.instance.branding.logoUrl),
@@ -416,6 +429,7 @@ function getDefaultAppPublicConfig(): InstanceAppPublicConfig {
 		legal: {
 			terms_url: null,
 			privacy_url: null,
+			guidelines_url: null,
 		},
 		registration: {
 			collect_date_of_birth: getDefaultDateOfBirthCollection(),
@@ -562,7 +576,7 @@ const StoredAccountIdentityConfigSchema = z.object({
 	source: z.enum(['new_instance', 'existing_instance', 'setup']),
 });
 
-export type StoredAccountIdentityConfig = z.infer<typeof StoredAccountIdentityConfigSchema>;
+type StoredAccountIdentityConfig = z.infer<typeof StoredAccountIdentityConfigSchema>;
 
 function parseStoredAccountIdentityConfig(raw: string | null): StoredAccountIdentityConfig | null {
 	if (raw === null) return null;
@@ -684,9 +698,24 @@ const StoredInstanceAppPublicSchema = InstanceAppPublicSchema.extend({
 });
 
 function parseStoredAppPublicConfig(raw: string | null): InstanceAppPublicConfig {
-	return buildAppPublicConfig(
-		salvageStoredConfig(StoredInstanceAppPublicSchema, readStoredConfigValue(raw, 'app public'), 'app public'),
+	return resolveAppPublicConfig(
+		buildAppPublicConfig(
+			salvageStoredConfig(StoredInstanceAppPublicSchema, readStoredConfigValue(raw, 'app public'), 'app public'),
+		),
 	);
+}
+
+function resolveAppPublicConfig(config: InstanceAppPublicConfig): InstanceAppPublicConfig {
+	return {
+		...config,
+		branding: mapBrandingAssets(config.branding, (value) =>
+			resolveBrandingAsset(value ?? null, Config.endpoints.media),
+		),
+	};
+}
+
+function toStoredBranding<T extends Partial<Record<BrandingAssetField, string | null>>>(branding: T): T {
+	return mapBrandingAssets(branding, (value) => toStoredBrandingAsset(value, Config.endpoints.media));
 }
 
 function buildAppPublicConfig(config: z.infer<typeof StoredInstanceAppPublicSchema>): InstanceAppPublicConfig {
@@ -716,6 +745,7 @@ function buildAppPublicConfig(config: z.infer<typeof StoredInstanceAppPublicSche
 		legal: {
 			terms_url: normalizeOptionalPublicString(legal.terms_url, defaults.legal.terms_url),
 			privacy_url: normalizeOptionalPublicString(legal.privacy_url, defaults.legal.privacy_url),
+			guidelines_url: normalizeOptionalPublicString(legal.guidelines_url, defaults.legal.guidelines_url),
 		},
 		registration: {
 			collect_date_of_birth: registration.collect_date_of_birth ?? defaults.registration.collect_date_of_birth,
@@ -1352,6 +1382,8 @@ export class InstanceConfigRepository {
 		setStoredBillingConfig(parseStoredInstanceBillingConfig(snapshot.get(INSTANCE_BILLING_CONFIG_KEY) ?? null));
 		const appPublic = parseStoredAppPublicConfig(snapshot.get(APP_PUBLIC_CONFIG_KEY) ?? null);
 		setCachedDateOfBirthCollection(appPublic.registration.collect_date_of_birth);
+		setCachedConfiguredLegalUrls(appPublic.legal);
+		setCachedProductName(appPublic.branding.product_name);
 		setCachedAccountIdentity(readStoredAccountIdentity(snapshot.get(ACCOUNT_IDENTITY_CONFIG_KEY) ?? null));
 	}
 
@@ -1633,6 +1665,8 @@ export class InstanceConfigRepository {
 		const raw = await this.getConfig(APP_PUBLIC_CONFIG_KEY);
 		const config = parseStoredAppPublicConfig(raw);
 		setCachedDateOfBirthCollection(config.registration.collect_date_of_birth);
+		setCachedConfiguredLegalUrls(config.legal);
+		setCachedProductName(config.branding.product_name);
 		return config;
 	}
 
@@ -1658,8 +1692,8 @@ export class InstanceConfigRepository {
 				StoredInstanceAppPublicSchema,
 				{
 					branding: {
-						...current.branding,
-						...(config.branding ?? {}),
+						...toStoredBranding(current.branding),
+						...toStoredBranding(config.branding ?? {}),
 						premium_product_name: premiumProductName,
 					},
 					setup: {
@@ -1677,11 +1711,68 @@ export class InstanceConfigRepository {
 				},
 				'app public',
 			);
-			return {value: JSON.stringify(merged), result: buildAppPublicConfig(merged)};
+			return {value: JSON.stringify(merged), result: resolveAppPublicConfig(buildAppPublicConfig(merged))};
 		});
 		await this.publishRefresh(cache.sourceId);
 		setCachedDateOfBirthCollection(next.registration.collect_date_of_birth);
+		setCachedConfiguredLegalUrls(next.legal);
+		setCachedProductName(next.branding.product_name);
 		return next;
+	}
+
+	async normalizeStoredBrandingAssets(storageService: IStorageService): Promise<number> {
+		const cache = this.configCache;
+		await cache.getSnapshot();
+		cache.assertActive();
+		const raw = await this.fetchConfigFromDatabase(APP_PUBLIC_CONFIG_KEY);
+		if (raw === null) return 0;
+		const stored = salvageStoredConfig(
+			StoredInstanceAppPublicSchema,
+			readStoredConfigValue(raw, 'app public'),
+			'app public',
+		);
+		const rewrites = new Map<string, string>();
+		for (const field of BRANDING_ASSET_FIELDS) {
+			const value = stored.branding?.[field];
+			if (typeof value !== 'string' || isBrandingAssetReference(value) || rewrites.has(value)) continue;
+			const reference = toStoredBrandingAsset(value, Config.endpoints.media);
+			if (reference !== value && typeof reference === 'string') {
+				rewrites.set(value, reference);
+				continue;
+			}
+			const candidate = brandingAssetReferenceFromAnyUrl(value);
+			if (candidate === null) continue;
+			const metadata = await storageService.getObjectMetadata(
+				Config.s3.buckets.cdn,
+				brandingAssetStorageKey(candidate),
+			);
+			if (metadata !== null) {
+				rewrites.set(value, candidate);
+			}
+		}
+		if (rewrites.size === 0) return 0;
+		const {result} = await this.compareAndSetStoredValue(cache, APP_PUBLIC_CONFIG_KEY, (current) => {
+			const latest = salvageStoredConfig(
+				StoredInstanceAppPublicSchema,
+				readStoredConfigValue(current, 'app public'),
+				'app public',
+			);
+			if (!latest.branding) return {value: null, result: 0};
+			let changed = 0;
+			const branding = mapBrandingAssets(latest.branding, (value) => {
+				const rewrite = typeof value === 'string' ? rewrites.get(value) : undefined;
+				if (rewrite === undefined) return value;
+				changed++;
+				return rewrite;
+			});
+			if (changed === 0) return {value: null, result: 0};
+			const next = validateStoredConfig(StoredInstanceAppPublicSchema, {...latest, branding}, 'app public');
+			return {value: JSON.stringify(next), result: changed};
+		});
+		if (result > 0) {
+			await this.publishRefresh(cache.sourceId);
+		}
+		return result;
 	}
 
 	async getInstancePolicyConfig(): Promise<InstancePolicyConfig> {
@@ -1791,10 +1882,6 @@ export class InstanceConfigRepository {
 			renew_threshold_days: attachmentDecay.renew_threshold_days ?? DEFAULT_RENEWAL_CONSTANTS.RENEW_THRESHOLD_DAYS,
 			renew_window_days: attachmentDecay.renew_window_days ?? DEFAULT_RENEWAL_CONSTANTS.RENEW_WINDOW_DAYS,
 		};
-	}
-
-	async isAttachmentDecayEnabled(): Promise<boolean> {
-		return (await this.getEffectiveAttachmentDecayConfig()).enabled;
 	}
 
 	async getInstanceMediaAdminConfig(): Promise<InstanceMediaAdminConfig> {
